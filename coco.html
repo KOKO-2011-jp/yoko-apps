@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ココちゃん占い</title>
+  <style>
+    :root{
+      --bg:#f7f7fb;
+      --card:#ffffff;
+      --text:#222;
+      --sub:#555;
+      --accent:#ff7aa2;
+      --accent2:#6c9;
+      --shadow: 0 10px 30px rgba(0,0,0,.08);
+      --radius: 18px;
+    }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 22px;
+      text-align: center;
+    }
+    .wrap{ max-width: 520px; margin: 0 auto; }
+    .card{
+      background: var(--card);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 18px 18px 20px;
+      margin-top: 14px;
+    }
+    h1{
+      margin: 8px 0 4px;
+      font-size: 26px;
+      letter-spacing: .5px;
+    }
+    .subtitle{ margin:0 0 6px; color: var(--sub); font-size: 14px; }
+    .pill{
+      display:inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,122,162,.14);
+      color: #b01846;
+      font-weight: 700;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+    .fortune{
+      font-size: 22px;
+      font-weight: 800;
+      margin: 12px 0 6px;
+    }
+    .stars{
+      font-size: 22px;
+      letter-spacing: 2px;
+      margin: 4px 0 10px;
+    }
+    .msg{
+      background: #fafafa;
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: var(--sub);
+      line-height: 1.6;
+      text-align: left;
+      margin: 10px 0 12px;
+    }
+    .row{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .mini{
+      background:#fafafa;
+      border-radius: 14px;
+      padding: 10px 12px;
+      text-align:left;
+      font-size: 13px;
+      color: var(--sub);
+    }
+    .mini b{ color: var(--text); }
+    button{
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 14px;
+      font-size: 16px;
+      font-weight: 800;
+      color: white;
+      background: linear-gradient(135deg, var(--accent), #ffb36b);
+      box-shadow: 0 10px 22px rgba(255,122,162,.25);
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    button:active{ transform: translateY(1px); }
+    a.back{
+      display:inline-block;
+      margin-top: 14px;
+      text-decoration:none;
+      color:#2a5bd7;
+      font-weight: 700;
+    }
+    .footer{
+      margin-top: 14px;
+      font-size: 12px;
+      color:#777;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="pill">🐱 ココちゃん占い</div>
+    <h1>今日の運勢</h1>
+    <p class="subtitle">ボタンを押すと、ココちゃんが一言くれます。</p>
+
+    <div class="card">
+      <div id="date" class="subtitle"></div>
+
+      <div class="fortune" id="fortuneTitle">準備OK？</div>
+      <div class="stars" id="stars">★★★★★</div>
+
+      <div class="msg" id="message">
+        まだ占いは出ていません。<br>
+        下のボタンで、ココちゃんに聞いてみてください。
+      </div>
+
+      <div class="row">
+        <div class="mini"><b>ラッキーアイテム</b><br><span id="item">-</span></div>
+        <div class="mini"><b>ラッキーカラー</b><br><span id="color">-</span></div>
+        <div class="mini"><b>ラッキーフード</b><br><span id="food">-</span></div>
+        <div class="mini"><b>今日の合言葉</b><br><span id="keyword">-</span></div>
+      </div>
+
+      <button id="btn">🐾 ココちゃん、占って！</button>
+
+      <a class="back" href="./index.html">← 展示場にもどる</a>
+      <div class="footer">※ローカルで動く、シンプル占いアプリです。</div>
+    </div>
+  </div>
+
+  <script>
+    const pad2 = (n) => String(n).padStart(2, "0");
+    const todayStr = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    };
+
+    // その日ごとに結果が固定される（毎日変わる）仕組み：簡易ハッシュ
+    function hashString(str){
+      let h = 2166136261;
+      for (let i=0; i<str.length; i++){
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return (h >>> 0);
+    }
+
+    const fortunes = [
+      {title:"最高の日！", stars:5, tone:"元気いっぱい"},
+      {title:"いい流れ",   stars:4, tone:"前向き"},
+      {title:"ふつうに良い", stars:3, tone:"落ち着き"},
+      {title:"ゆっくりでOK", stars:2, tone:"休憩"},
+      {title:"無理しない日", stars:1, tone:"慎重"}
+    ];
+
+    const messages = [
+      "焦らなくて大丈夫。ココは見てるよ。まず深呼吸にゃ。",
+      "今日は『一つだけ』進める日。小さくてOKにゃ。",
+      "迷ったら温かい飲み物。ココはそれで復活したにゃ。",
+      "今日は自分に優しくする日。できたことを数えるにゃ。",
+      "新しいことに少し触れると運気UP。ちょこっとだけにゃ。",
+      "身体を温めると良い日。足元ぬくぬく作戦にゃ。",
+      "誰かに一言『ありがとう』を言うと、いいことが起きるにゃ。",
+      "片づけが吉。机の上を1分だけ整えるにゃ。",
+      "よく寝たら勝ち。夜は早めに準備するにゃ。",
+      "笑うと強い。ココの顔を思い出してにゃ。"
+    ];
+
+    const items = ["ふわふわブランケット","猫のおやつ（自分用でもOK）","メモ帳","ハンドクリーム","小さめの鏡","お気に入りのペン","温かい靴下","リップクリーム","ミニタオル","コーヒー（1杯だけ）"];
+    const colors = ["ピンク","ミント","ネイビー","アイボリー","ラベンダー","ベージュ","スカイブルー","グリーン","ブラウン","ゴールド"];
+    const foods  = ["味噌汁","ヨーグルト","バナナ","ナッツ","チョコ少し","おにぎり","サラダチキン少し","スープ","フルーツ","温かいお茶"];
+    const keywords = ["ゆっくりでOK","小さく進む","深呼吸","温める","1分片づけ","ありがとう","早寝","水分","笑顔","一歩ずつ"];
+
+    function pick(arr, seed){
+      return arr[ seed % arr.length ];
+    }
+
+    function render(){
+      const key = todayStr();                 // 日付で固定
+      const seed = hashString("COCO-" + key); // 毎日変わる
+      const f = pick(fortunes, seed);
+      const msg = pick(messages, seed >>> 3);
+      const item = pick(items, seed >>> 7);
+      const color = pick(colors, seed >>> 11);
+      const food  = pick(foods,  seed >>> 15);
+      const kw    = pick(keywords, seed >>> 19);
+
+      document.getElementById("date").textContent = `📅 ${key}`;
+      document.getElementById("fortuneTitle").textContent = `${f.title}（${f.tone}）`;
+      document.getElementById("stars").textContent = "★★★★★".slice(0, f.stars) + "☆☆☆☆☆".slice(0, 5 - f.stars);
+      document.getElementById("message").innerHTML = `🐾 <b>ココから一言</b><br>${msg}`;
+      document.getElementById("item").textContent = item;
+      document.getElementById("color").textContent = color;
+      document.getElementById("food").textContent  = food;
+      document.getElementById("keyword").textContent = kw;
+    }
+
+    document.getElementById("btn").addEventListener("click", render);
+  </script>
+</body>
+</html>
