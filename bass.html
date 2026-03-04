@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ヘ音記号トレーナー</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f0f4f8;--card:#ffffff;--card2:#f8f9fa;
+  --blue:#1a6fd4;--purple:#7c3aed;--gold:#d97706;
+  --green:#16a34a;--red:#dc2626;
+  --text:#1a1a2e;--dim:#6b7280;--dim2:#9ca3af;
+  --border:#e5e7eb;--border2:#d1d5db;--r:14px;
+  --staff-line:#222222;--note-fill:#111111;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;max-width:520px;margin:0 auto;overflow-x:hidden;}
+.screen{display:none;flex-direction:column;min-height:100vh;}
+.screen.active{display:flex;}
+
+/* TOP BAR */
+.topbar{display:flex;align-items:center;gap:10px;padding:18px 16px 6px;background:#fff;border-bottom:2px solid var(--border);}
+.topbar h1{font-size:19px;font-weight:900;flex:1;color:var(--text);}
+.clef-icon{font-size:26px;color:var(--blue);}
+
+/* TABS */
+.tabs{display:flex;gap:0;background:#fff;border-bottom:2px solid var(--border);}
+.tab-btn{flex:1;padding:12px 6px;border:none;background:transparent;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;color:var(--dim);border-bottom:3px solid transparent;margin-bottom:-2px;}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+
+/* HOME TAB */
+#homeTab{flex:1;padding:16px 16px 32px;display:flex;flex-direction:column;gap:14px;background:var(--bg);}
+.setting-card{background:#fff;border-radius:var(--r);padding:18px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.setting-label{font-size:11px;font-weight:700;color:var(--dim);letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px;}
+.chip-row{display:flex;gap:8px;}
+.chip{flex:1;padding:12px 6px;border-radius:10px;border:2px solid var(--border2);background:#fff;color:var(--dim);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.chip-sub{font-size:10px;font-weight:400;color:var(--dim2);}
+.sel-blue{border-color:var(--blue);color:var(--blue);background:#eff6ff;box-shadow:0 2px 8px rgba(26,111,212,.15);}
+.sel-purple{border-color:var(--purple);color:var(--purple);background:#f5f3ff;box-shadow:0 2px 8px rgba(124,58,237,.15);}
+
+.btn-main{width:100%;padding:18px;border-radius:var(--r);border:none;background:var(--blue);color:#fff;font-family:inherit;font-size:18px;font-weight:900;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(26,111,212,.35);display:flex;align-items:center;justify-content:center;gap:8px;margin-top:auto;}
+.btn-main:active{transform:scale(.97);}
+
+/* CHART TAB */
+#chartTab{flex:1;padding:14px 14px 40px;overflow-y:auto;gap:22px;background:var(--bg);}
+.oct-section{margin-bottom:22px;}
+.oct-head{font-size:13px;font-weight:700;letter-spacing:.08em;color:var(--dim);margin-bottom:12px;padding-left:10px;border-left:3px solid var(--blue);}
+.notes-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.note-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:10px 6px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:default;transition:all .15s;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.note-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:0 4px 12px rgba(26,111,212,.15);}
+.note-card svg{width:100%;display:block;}
+.nc-name{font-size:13px;font-weight:900;color:var(--blue);}
+.nc-ja{font-size:11px;color:var(--dim);}
+
+/* QUIZ SCREEN */
+#quizScreen{padding:16px 16px 28px;gap:13px;background:var(--bg);}
+.quiz-header{display:flex;align-items:center;justify-content:space-between;}
+.btn-back{background:#fff;border:1px solid var(--border2);color:var(--dim);font-family:inherit;font-size:13px;font-weight:700;padding:9px 15px;border-radius:10px;cursor:pointer;}
+.score-pills{display:flex;gap:8px;}
+.score-pill{background:#fff;border:1px solid var(--border);border-radius:50px;padding:7px 14px;display:flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.sp-val{font-weight:900;font-size:17px;color:var(--gold);}
+.sp-lbl{color:var(--dim);font-size:11px;}
+
+.progress-wrap{background:#e5e7eb;border-radius:100px;height:6px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:100px;transition:width .4s ease;}
+
+/* STAFF CARD — white with shadow like sheet music */
+.staff-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:16px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+#staffSvg{width:100%;max-width:340px;height:155px;}
+.staff-hint{font-size:12px;color:var(--dim);}
+
+.answers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.btn-ans{background:#fff;border:2px solid var(--border2);border-radius:12px;color:var(--text);font-family:inherit;font-size:15px;font-weight:900;padding:16px 6px 12px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.ans-ja{font-size:10px;font-weight:400;color:var(--dim);}
+.btn-ans:hover:not(:disabled){border-color:var(--blue);color:var(--blue);background:#eff6ff;transform:translateY(-2px);}
+.btn-ans.correct{background:#f0fdf4;border-color:var(--green);color:var(--green);}
+.btn-ans.wrong{background:#fef2f2;border-color:var(--red);color:var(--red);}
+.btn-ans:disabled{cursor:default;}
+
+.feedback-bar{background:#fff;border-radius:11px;padding:13px 16px;font-size:14px;font-weight:700;text-align:center;min-height:48px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);opacity:0;transition:opacity .2s;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.feedback-bar.show{opacity:1;}
+.feedback-bar.ok{color:var(--green);border-color:#bbf7d0;background:#f0fdf4;}
+.feedback-bar.ng{color:var(--red);border-color:#fecaca;background:#fef2f2;}
+
+.btn-next{width:100%;padding:17px;border-radius:var(--r);border:none;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-family:inherit;font-size:16px;font-weight:900;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(26,111,212,.25);opacity:0;pointer-events:none;}
+.btn-next.visible{opacity:1;pointer-events:all;}
+
+/* RESULT */
+#resultScreen{align-items:center;justify-content:center;gap:18px;padding:32px 24px;text-align:center;background:var(--bg);}
+.result-emoji{font-size:76px;line-height:1;}
+.result-title{font-size:25px;font-weight:900;color:var(--text);}
+.result-score-big{font-size:68px;font-weight:900;color:var(--blue);line-height:1;}
+.result-lbl{color:var(--dim);font-size:14px;}
+.result-pct{font-size:21px;font-weight:700;color:var(--purple);}
+.result-btns{display:flex;flex-direction:column;gap:11px;width:100%;max-width:300px;}
+.btn-retry{padding:17px;border-radius:var(--r);border:none;background:var(--blue);color:#fff;font-family:inherit;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 4px 16px rgba(26,111,212,.3);}
+.btn-home{padding:15px;border-radius:var(--r);border:1px solid var(--border2);background:#fff;color:var(--text);font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;}
+
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.14)}100%{transform:scale(1)}}
+.pop{animation:pop .22s ease;}
+</style>
+</head>
+<body>
+
+<div id="homeScreen" class="screen active">
+  <div class="topbar">
+    <span class="clef-icon">𝄢</span>
+    <h1>ヘ音記号トレーニング</h1>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tabHome"  onclick="switchTab('home')">🎯 スタート</button>
+    <button class="tab-btn"        id="tabChart" onclick="switchTab('chart')">📖 音符一覧</button>
+  </div>
+  <div id="homeTab">
+    <div class="setting-card">
+      <div class="setting-label">問題数</div>
+      <div class="chip-row">
+        <button class="chip"          data-g="count" data-val="5"  onclick="selectChip(this,'count','sel-blue')">5問</button>
+        <button class="chip sel-blue" data-g="count" data-val="10" onclick="selectChip(this,'count','sel-blue')">10問</button>
+        <button class="chip"          data-g="count" data-val="20" onclick="selectChip(this,'count','sel-blue')">20問</button>
+      </div>
+    </div>
+    <div class="setting-card">
+      <div class="setting-label">難易度</div>
+      <div class="chip-row">
+        <button class="chip" data-g="diff" data-val="low" onclick="selectChip(this,'diff','sel-purple')">低音域<span class="chip-sub">C2〜G2</span></button>
+        <button class="chip sel-purple" data-g="diff" data-val="all" onclick="selectChip(this,'diff','sel-purple')">全音域<span class="chip-sub">C2〜G4</span></button>
+        <button class="chip" data-g="diff" data-val="high" onclick="selectChip(this,'diff','sel-purple')">高音域<span class="chip-sub">A3〜G4</span></button>
+      </div>
+    </div>
+    <button class="btn-main" onclick="startQuiz()">スタート 🎵</button>
+  </div>
+  <div id="chartTab" style="display:none;flex-direction:column;">
+    <div id="chartContent"></div>
+  </div>
+</div>
+
+<div id="quizScreen" class="screen">
+  <div class="quiz-header">
+    <button class="btn-back" onclick="goHome()">← もどる</button>
+    <div class="score-pills">
+      <div class="score-pill"><span class="sp-val" id="qCorrect">0</span><span class="sp-lbl">正解</span></div>
+      <div class="score-pill"><span class="sp-val" id="qTotal">0</span><span class="sp-lbl">/ <span id="qMax">10</span></span></div>
+    </div>
+  </div>
+  <div class="progress-wrap"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div class="staff-card">
+    <svg id="staffSvg" viewBox="0 0 340 155" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="staff-hint" id="staffHint"></div>
+  </div>
+  <div class="answers-grid" id="answerGrid"></div>
+  <div class="feedback-bar" id="feedbackBar"></div>
+  <button class="btn-next" id="btnNext" onclick="nextQuestion()">次の問題 →</button>
+</div>
+
+<div id="resultScreen" class="screen">
+  <div class="result-emoji" id="resultEmoji">🎉</div>
+  <div class="result-title"  id="resultTitle"></div>
+  <div class="result-score-big" id="resultScore"></div>
+  <div class="result-lbl"       id="resultLabel"></div>
+  <div class="result-pct"       id="resultPct"></div>
+  <div class="result-btns">
+    <button class="btn-retry" onclick="retryQuiz()">もう一度 🎵</button>
+    <button class="btn-home"  onclick="goHome()">ホームへ戻る</button>
+  </div>
+</div>
+
+<script>
+/*
+  STEM DIRECTION (bass clef):
+  slot <= 4 (D3 = middle line, or below) → stem UP on RIGHT side of head
+  slot >  4 (above middle line)          → stem DOWN on LEFT side of head
+*/
+const ALL_NOTES=[
+  {name:'C2',ja:'ド',  slot:-4},{name:'D2',ja:'レ',  slot:-3},
+  {name:'E2',ja:'ミ',  slot:-2},{name:'F2',ja:'ファ',slot:-1},
+  {name:'G2',ja:'ソ',  slot: 0},{name:'A2',ja:'ラ',  slot: 1},
+  {name:'B2',ja:'シ',  slot: 2},{name:'C3',ja:'ド',  slot: 3},
+  {name:'D3',ja:'レ',  slot: 4},{name:'E3',ja:'ミ',  slot: 5},
+  {name:'F3',ja:'ファ',slot: 6},{name:'G3',ja:'ソ',  slot: 7},
+  {name:'A3',ja:'ラ',  slot: 8},{name:'B3',ja:'シ',  slot: 9},
+  {name:'C4',ja:'ド',  slot:10},{name:'D4',ja:'レ',  slot:11},
+  {name:'E4',ja:'ミ',  slot:12},{name:'F4',ja:'ファ',slot:13},
+  {name:'G4',ja:'ソ',  slot:14},
+];
+const DIFF_POOLS={
+  low: ALL_NOTES.filter(n=>n.slot<=2),
+  all: ALL_NOTES,
+  high:ALL_NOTES.filter(n=>n.slot>=8),
+};
+const CHART_GROUPS=[
+  {label:'低音域　C2 〜 G2',   names:['C2','D2','E2','F2','G2']},
+  {label:'中低音域　A2 〜 G3', names:['A2','B2','C3','D3','E3','F3','G3']},
+  {label:'中音域　A3 〜 G4',   names:['A3','B3','C4','D4','E4','F4','G4']},
+];
+let selectedCount=10,selectedDiff='all';
+let quizPool=[],currentIdx=0,correctCount=0,currentNote=null,answered=false;
+
+function isUp(slot){return slot<=4;}
+
+function switchTab(tab){
+  document.getElementById('tabHome').classList.toggle('active',tab==='home');
+  document.getElementById('tabChart').classList.toggle('active',tab==='chart');
+  document.getElementById('homeTab').style.display  =tab==='home' ?'flex':'none';
+  document.getElementById('chartTab').style.display =tab==='chart'?'flex':'none';
+}
+function selectChip(btn,group,cls){
+  document.querySelectorAll(`[data-g="${group}"]`).forEach(b=>b.classList.remove('sel-blue','sel-purple'));
+  btn.classList.add(cls);
+  if(group==='count')selectedCount=parseInt(btn.dataset.val);
+  else selectedDiff=btn.dataset.val;
+}
+
+const NS='http://www.w3.org/2000/svg';
+function mkEl(tag,attrs){
+  const e=document.createElementNS(NS,tag);
+  Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));
+  return e;
+}
+
+/* ══════════════════════════════════
+   LARGE STAFF  (quiz)
+   viewBox 0 0 340 155
+   bottom line (G2=slot0) at y=115, gap=12/slot
+══════════════════════════════════ */
+const QB=115,QG=12,QNX=230,QSL=72,QSR=318;
+function qY(s){return QB-s*QG;}
+
+function drawStaff(svg,note){
+  svg.innerHTML='';
+
+  // white background
+  svg.appendChild(mkEl('rect',{x:0,y:0,width:340,height:155,fill:'#ffffff'}));
+
+  // 5 staff lines — black, like real sheet music
+  for(let i=0;i<5;i++){
+    const y=QB-i*2*QG;
+    svg.appendChild(mkEl('line',{x1:QSL,y1:y,x2:QSR,y2:y,stroke:'#1a1a1a','stroke-width':'1.3'}));
+  }
+
+  // Bass clef — black
+  const ct=mkEl('text',{x:'4',y:String(QB+8),fill:'#1a1a1a','font-size':'76','font-family':'serif'});
+  ct.textContent='𝄢'; svg.appendChild(ct);
+
+  const slot=note.slot, ny=qY(slot);
+
+  // ledger lines below
+  for(let s=-2;s>=slot;s-=2)
+    svg.appendChild(mkEl('line',{x1:QNX-16,y1:qY(s),x2:QNX+16,y2:qY(s),stroke:'#1a1a1a','stroke-width':'1.3'}));
+  // ledger lines above
+  for(let s=10;s<=slot;s+=2)
+    svg.appendChild(mkEl('line',{x1:QNX-16,y1:qY(s),x2:QNX+16,y2:qY(s),stroke:'#1a1a1a','stroke-width':'1.3'}));
+
+  // note head — solid black ellipse, tilted
+  svg.appendChild(mkEl('ellipse',{cx:QNX,cy:ny,rx:'11',ry:'8',fill:'#1a1a1a',transform:`rotate(-18,${QNX},${ny})`}));
+
+  // stem
+  const up=isUp(slot);
+  const sx=QNX+(up?11:-11);
+  svg.appendChild(mkEl('line',{
+    x1:sx,y1:ny+(up?-8:8),
+    x2:sx,y2:ny+(up?-52:52),
+    stroke:'#1a1a1a','stroke-width':'1.8'
+  }));
+}
+
+/* ══════════════════════════════════
+   MINI STAFF  (chart cards)
+══════════════════════════════════ */
+function miniSVG(note){
+  const slot=note.slot;
+  const VW=90,MB=74,MG=8,MNX=64,MSL=14,MSR=86;
+  const topSlot=Math.max(slot,8);
+  const botSlot=Math.min(slot,-4);
+  const topY=MB-topSlot*MG-18;
+  const botY=MB-botSlot*MG+18;
+  const VH=Math.max(botY-topY,90);
+
+  const svg=document.createElementNS(NS,'svg');
+  svg.setAttribute('viewBox',`0 ${topY} ${VW} ${VH}`);
+  svg.style.overflow='visible';
+
+  const sy=s=>MB-s*MG;
+
+  // white background strip
+  svg.appendChild(mkEl('rect',{x:0,y:topY,width:VW,height:VH,fill:'#ffffff'}));
+
+  // 5 staff lines — black
+  for(let i=0;i<5;i++){
+    const y=MB-i*2*MG;
+    svg.appendChild(mkEl('line',{x1:MSL,y1:y,x2:MSR,y2:y,stroke:'#1a1a1a','stroke-width':'0.9'}));
+  }
+
+  // Bass clef — black
+  const ct=mkEl('text',{x:'0',y:String(MB+6),fill:'#1a1a1a','font-size':'38','font-family':'serif'});
+  ct.textContent='𝄢'; svg.appendChild(ct);
+
+  const ny=sy(slot);
+
+  // ledger lines
+  for(let s=-2;s>=slot;s-=2)
+    svg.appendChild(mkEl('line',{x1:MNX-9,y1:sy(s),x2:MNX+9,y2:sy(s),stroke:'#1a1a1a','stroke-width':'0.9'}));
+  for(let s=10;s<=slot;s+=2)
+    svg.appendChild(mkEl('line',{x1:MNX-9,y1:sy(s),x2:MNX+9,y2:sy(s),stroke:'#1a1a1a','stroke-width':'0.9'}));
+
+  // note head — solid black
+  svg.appendChild(mkEl('ellipse',{cx:MNX,cy:ny,rx:'7',ry:'5',fill:'#1a1a1a',transform:`rotate(-18,${MNX},${ny})`}));
+
+  // stem
+  const up=isUp(slot);
+  const sx=MNX+(up?7:-7);
+  svg.appendChild(mkEl('line',{
+    x1:sx,y1:ny+(up?-5:5),
+    x2:sx,y2:ny+(up?-30:30),
+    stroke:'#1a1a1a','stroke-width':'1.2'
+  }));
+  return svg;
+}
+
+/* ── build chart ── */
+function buildChart(){
+  const cont=document.getElementById('chartContent');
+  cont.innerHTML='';
+  CHART_GROUPS.forEach(g=>{
+    const sec=document.createElement('div');sec.className='oct-section';
+    const head=document.createElement('div');head.className='oct-head';head.textContent=g.label;
+    sec.appendChild(head);
+    const grid=document.createElement('div');grid.className='notes-grid';
+    g.names.forEach(name=>{
+      const n=ALL_NOTES.find(x=>x.name===name);if(!n)return;
+      const card=document.createElement('div');card.className='note-card';
+      const wrap=document.createElement('div');
+      wrap.style.cssText='width:100%;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:8px;background:#fff;';
+      const s=miniSVG(n);s.style.cssText='width:100%;height:100%;';
+      wrap.appendChild(s);card.appendChild(wrap);
+      const nm=document.createElement('div');nm.className='nc-name';nm.textContent=n.name;
+      const ja=document.createElement('div');ja.className='nc-ja';ja.textContent=n.ja;
+      card.appendChild(nm);card.appendChild(ja);
+      grid.appendChild(card);
+    });
+    sec.appendChild(grid);cont.appendChild(sec);
+  });
+}
+
+/* ── quiz logic ── */
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function startQuiz(){
+  const pool=DIFF_POOLS[selectedDiff];
+  quizPool=[];const base=shuffle(pool);
+  while(quizPool.length<selectedCount)quizPool.push(...base);
+  quizPool=quizPool.slice(0,selectedCount);
+  currentIdx=0;correctCount=0;
+  document.getElementById('qMax').textContent=selectedCount;
+  showScreen('quizScreen');loadQuestion();
+}
+
+function loadQuestion(){
+  answered=false;currentNote=quizPool[currentIdx];
+  drawStaff(document.getElementById('staffSvg'),currentNote);
+  document.getElementById('staffHint').textContent=
+    currentNote.slot%2===0?'🎵 線の上の音符':'🎵 線と線の間の音符';
+  const fb=document.getElementById('feedbackBar');
+  fb.textContent='';fb.className='feedback-bar';
+  document.getElementById('btnNext').classList.remove('visible');
+  document.getElementById('progressFill').style.width=(currentIdx/selectedCount*100)+'%';
+  document.getElementById('qTotal').textContent=currentIdx;
+  const pool=DIFF_POOLS[selectedDiff];
+  const wrongs=shuffle(pool.filter(n=>n.name!==currentNote.name)).slice(0,5);
+  const choices=shuffle([currentNote,...wrongs]);
+  const grid=document.getElementById('answerGrid');grid.innerHTML='';
+  choices.forEach(n=>{
+    const btn=document.createElement('button');btn.className='btn-ans';
+    btn.innerHTML=`${n.name}<span class="ans-ja">${n.ja}</span>`;
+    btn.onclick=()=>checkAns(n,btn);grid.appendChild(btn);
+  });
+}
+
+function checkAns(chosen,btn){
+  if(answered)return;answered=true;
+  document.querySelectorAll('.btn-ans').forEach(b=>b.disabled=true);
+  const fb=document.getElementById('feedbackBar');
+  if(chosen.name===currentNote.name){
+    btn.classList.add('correct','pop');
+    fb.textContent=`✓ 正解！ ${currentNote.name}（${currentNote.ja}）`;
+    fb.className='feedback-bar show ok';correctCount++;
+  }else{
+    btn.classList.add('wrong');
+    fb.textContent=`✗ 不正解。正解は ${currentNote.name}（${currentNote.ja}）`;
+    fb.className='feedback-bar show ng';
+    document.querySelectorAll('.btn-ans').forEach(b=>{
+      if(b.textContent.startsWith(currentNote.name))b.classList.add('correct');
+    });
+  }
+  document.getElementById('qCorrect').textContent=correctCount;
+  currentIdx++;
+  if(currentIdx>=selectedCount)setTimeout(showResult,850);
+  else document.getElementById('btnNext').classList.add('visible');
+}
+
+function nextQuestion(){loadQuestion();}
+
+function showResult(){
+  const pct=Math.round(correctCount/selectedCount*100);
+  let emoji='😅',title='もう少しだ！';
+  if(pct>=90){emoji='🏆';title='パーフェクト！';}
+  else if(pct>=70){emoji='🎉';title='よくできました！';}
+  else if(pct>=50){emoji='👍';title='なかなかいい！';}
+  document.getElementById('resultEmoji').textContent=emoji;
+  document.getElementById('resultTitle').textContent=title;
+  document.getElementById('resultScore').textContent=correctCount;
+  document.getElementById('resultLabel').textContent=`/ ${selectedCount} 問正解`;
+  document.getElementById('resultPct').textContent=`正解率 ${pct}%`;
+  showScreen('resultScreen');
+}
+
+function retryQuiz(){startQuiz();}
+function goHome(){showScreen('homeScreen');switchTab('home');}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+buildChart();
+</script>
+</body>
+</html>
