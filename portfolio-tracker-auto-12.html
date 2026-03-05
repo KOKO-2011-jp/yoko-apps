@@ -57,7 +57,7 @@ const typeLabels = { jp:'日本株', us:'米国株', etf:'信託・ETF', crypto:
 const typeColors = { jp:'#e8462a', us:'#2563eb', etf:'#16a34a', crypto:'#f59e0b' };
 
 // 自動取得できる資産種別
-const AUTO_TYPES = ['us', 'crypto'];
+const AUTO_TYPES = ['us', 'crypto', 'jp'];
 
 // 仮想通貨のCoinGecko ID マッピング
 const CRYPTO_IDS = {
@@ -202,13 +202,44 @@ async function fetchUSStockPrices() {
   }
 }
 
+async function fetchJPStockPrices() {
+  const jpAssets = assets.filter(a => a.type === 'jp');
+  if (!jpAssets.length) return;
+
+  for (const a of jpAssets) {
+    try {
+      // 日本株は証券コード+".T"でYahoo Finance取得
+      const ticker = a.ticker.includes('.') ? a.ticker : a.ticker + '.T';
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=2d`;
+      const res = await fetchWithFallback(url);
+      const data = await res.json();
+      const result = data?.chart?.result?.[0];
+      if (result) {
+        const meta = result.meta;
+        const price = meta.regularMarketPrice;
+        const prev = meta.chartPreviousClose;
+        if (price) {
+          prevPrices[a.id] = a.currentPrice;
+          a.currentPrice = price;
+          a.dailyChange = prev ? +((( price - prev) / prev) * 100).toFixed(2) : 0;
+          a.autoPrice = true;
+          a.autoPriceFailed = false;
+        }
+      }
+    } catch(e) {
+      console.warn(`${a.ticker}の価格取得失敗:`, e.message);
+      a.autoPriceFailed = true;
+    }
+  }
+}
+
 async function updateAllPrices(showToast=true) {
   if (isUpdating) return;
   isUpdating = true;
   renderUpdateBtn(true);
 
   try {
-    await Promise.all([fetchUsdJpy(), fetchCryptoPrices(), fetchUSStockPrices()]);
+    await Promise.all([fetchUsdJpy(), fetchCryptoPrices(), fetchUSStockPrices(), fetchJPStockPrices()]);
     lastUpdated = new Date();
     save();
     if (showToast) toast('✓ 価格を更新しました');
@@ -352,7 +383,7 @@ function render() {
 
     <!-- 更新時刻 -->
     <div style="padding:6px 16px 0;font-size:10px;color:#555">
-      🟢 仮想通貨・米国株は自動取得 ／ 日本株・投信は手動入力 ｜ 最終更新: ${updatedStr}
+      🟢 日本株・米国株・仮想通貨は自動取得 ／ 投信は手動入力 ｜ 最終更新: ${updatedStr}
     </div>
 
     <!-- 総資産 -->
@@ -462,7 +493,7 @@ function showModal(d) {
       </div>
 
       <div id="auto-notice" style="background:#0f2a1a;border:1px solid #1a4a2a;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#4ade80;display:${isAuto?'block':'none'}">
-        ✓ 米国株・仮想通貨は価格を自動取得します。現在価格の入力は不要です。
+        ✓ 日本株・米国株・仮想通貨は価格を自動取得します。現在価格の入力は不要です。
       </div>
 
       <div id="etf-notice" style="background:#1a1a0f;border:1px solid #3a3a1a;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#fbbf24;display:${d.type==='etf'?'block':'none'}">
@@ -481,7 +512,7 @@ function showModal(d) {
         <div>
           <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">種別</label>
           <select id="f-type" onchange="onTypeChange(this.value)">
-            <option value="jp" ${d.type==='jp'?'selected':''}>日本株（手動）</option>
+            <option value="jp" ${d.type==='jp'?'selected':''}>日本株（AUTO）</option>
             <option value="us" ${d.type==='us'?'selected':''}>米国株（AUTO）</option>
             <option value="etf" ${d.type==='etf'?'selected':''}>信託・ETF（手動）</option>
             <option value="crypto" ${d.type==='crypto'?'selected':''}>仮想通貨（AUTO）</option>
