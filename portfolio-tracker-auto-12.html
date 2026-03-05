@@ -726,10 +726,11 @@ async function importXLSX(file) {
 
       let finalQty = qty, finalBuy = buyPrice, finalCurrent = currentPrice;
       if (type === 'etf') {
-        // 投資信託: qty=1, buyPrice=取得金額合計, currentPrice=評価額
+        // 投資信託: 1万口単位のため ÷10000 して円換算
+        // qty=1, buyPrice=取得金額合計(円), currentPrice=評価額(円)
         finalQty = 1;
-        finalBuy = qty * buyPrice;      // 保有口数×取得単価=取得金額
-        finalCurrent = parseFloat(rows[i][6]) || qty * currentPrice; // 評価額列があれば使う
+        finalBuy = Math.round(qty * buyPrice / 10000);
+        finalCurrent = Math.round(qty * currentPrice / 10000);
       }
 
       imported.push({ id:idBase++, name, ticker, type, currency,
