@@ -465,10 +465,14 @@ function showModal(d) {
         ✓ 米国株・仮想通貨は価格を自動取得します。現在価格の入力は不要です。
       </div>
 
+      <div id="etf-notice" style="background:#1a1a0f;border:1px solid #3a3a1a;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#fbbf24;display:${d.type==='etf'?'block':'none'}">
+        📊 投資信託は「取得金額（合計）」と「現在の評価額」を直接入力してください。
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div style="grid-column:1/-1">
           <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">銘柄名</label>
-          <input id="f-name" value="${d.name}" placeholder="例: トヨタ自動車">
+          <input id="f-name" value="${d.name}" placeholder="例: eMAXIS Slim 全世界株式">
         </div>
         <div>
           <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">ティッカー / コード</label>
@@ -483,25 +487,39 @@ function showModal(d) {
             <option value="crypto" ${d.type==='crypto'?'selected':''}>仮想通貨（AUTO）</option>
           </select>
         </div>
-        <div>
-          <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">保有数量</label>
-          <input id="f-qty" type="number" value="${d.qty}" placeholder="100">
-        </div>
-        <div>
+        <!-- 通貨（ETFは非表示） -->
+        <div id="currency-field" style="${d.type==='etf'?'display:none':''}">
           <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">通貨</label>
           <select id="f-currency">
             <option value="JPY" ${d.currency==='JPY'?'selected':''}>JPY (円)</option>
             <option value="USD" ${d.currency==='USD'?'selected':''}>USD ($)</option>
           </select>
         </div>
-        <div>
+
+        <!-- 株式・仮想通貨用フィールド -->
+        <div id="qty-field" style="${d.type==='etf'?'display:none':''}">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">保有数量</label>
+          <input id="f-qty" type="number" value="${d.qty}" placeholder="100">
+        </div>
+        <div id="buyprice-field" style="${d.type==='etf'?'display:none':''}">
           <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">購入単価</label>
           <input id="f-buy" type="number" value="${d.buyPrice}" placeholder="2800">
         </div>
-        <div id="price-field">
+        <div id="price-field" style="${d.type==='etf'?'display:none':''}">
           <label style="font-size:11px;color:#666;display:block;margin-bottom:4px" id="price-label">現在価格 ${isAuto?'（自動取得）':''}</label>
           <input id="f-current" type="number" value="${d.currentPrice}" placeholder="${isAuto?'自動取得':'3120'}" ${isAuto?'style="opacity:0.4"':''} ${isAuto?'readonly':''}>
         </div>
+
+        <!-- 投資信託用フィールド -->
+        <div id="etf-cost-field" style="${d.type==='etf'?'':'display:none'}">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">取得金額（合計・円）</label>
+          <input id="f-etf-cost" type="number" value="${d.type==='etf'?d.buyPrice*d.qty:''}" placeholder="例: 500000">
+        </div>
+        <div id="etf-value-field" style="${d.type==='etf'?'':'display:none'}">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">現在の評価額（円）</label>
+          <input id="f-etf-value" type="number" value="${d.type==='etf'?d.currentPrice*d.qty:''}" placeholder="例: 600000">
+        </div>
+
         <div id="daily-field" style="${isAuto?'display:none':''}">
           <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">本日変動率 (%)</label>
           <input id="f-daily" type="number" step="0.01" value="${d.dailyChange||0}" placeholder="1.5">
@@ -516,21 +534,47 @@ function showModal(d) {
 }
 
 function onTypeChange(val) {
+  const isAuto = AUTO_TYPES.includes(val);
+  const isETF = val === 'etf';
+
+  // 通貨
   const cur = document.getElementById('f-currency');
+  if (cur) { cur.value = val === 'us' ? 'USD' : 'JPY'; }
+
+  // 自動取得バッジ
   const notice = document.getElementById('auto-notice');
+  if (notice) notice.style.display = isAuto ? 'block' : 'none';
+
+  // 投資信託バッジ
+  const etfNotice = document.getElementById('etf-notice');
+  if (etfNotice) etfNotice.style.display = isETF ? 'block' : 'none';
+
+  // 通常フィールドの表示切替
+  ['qty-field','buyprice-field','price-field','currency-field'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isETF ? 'none' : '';
+  });
+
+  // ETF専用フィールド
+  ['etf-cost-field','etf-value-field'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isETF ? '' : 'none';
+  });
+
+  // 自動取得時の価格フィールド
   const priceInput = document.getElementById('f-current');
   const priceLabel = document.getElementById('price-label');
+  if (priceInput && !isETF) {
+    priceInput.readOnly = isAuto;
+    priceInput.style.opacity = isAuto ? '0.4' : '1';
+  }
+  if (priceLabel && !isETF) {
+    priceLabel.textContent = `現在価格 ${isAuto ? '（自動取得）' : ''}`;
+  }
+
+  // 変動率フィールド
   const dailyField = document.getElementById('daily-field');
-  const isAuto = AUTO_TYPES.includes(val);
-
-  if (val === 'us') { cur.value = 'USD'; }
-  else { cur.value = 'JPY'; }
-
-  notice.style.display = isAuto ? 'block' : 'none';
-  priceInput.readOnly = isAuto;
-  priceInput.style.opacity = isAuto ? '0.4' : '1';
-  priceLabel.textContent = `現在価格 ${isAuto ? '（自動取得）' : ''}`;
-  dailyField.style.display = isAuto ? 'none' : '';
+  if (dailyField) dailyField.style.display = (isAuto || isETF) ? 'none' : '';
 }
 
 function closeModal() {
@@ -542,20 +586,40 @@ function submitForm() {
   const name = document.getElementById('f-name').value.trim();
   const ticker = document.getElementById('f-ticker').value.trim().toUpperCase();
   const type = document.getElementById('f-type').value;
-  const qty = parseFloat(document.getElementById('f-qty').value);
-  const currency = document.getElementById('f-currency').value;
-  const buyPrice = parseFloat(document.getElementById('f-buy').value);
-  const currentPriceVal = parseFloat(document.getElementById('f-current').value);
-  const dailyVal = parseFloat(document.getElementById('f-daily').value)||0;
+  const isETF = type === 'etf';
   const isAuto = AUTO_TYPES.includes(type);
 
-  if (!name || isNaN(qty) || isNaN(buyPrice)) {
-    alert('必要な項目を入力してください');
-    return;
-  }
-  if (!isAuto && isNaN(currentPriceVal)) {
-    alert('現在価格を入力してください');
-    return;
+  let qty, currency, buyPrice, currentPriceVal, dailyVal;
+
+  if (isETF) {
+    // 投資信託: 評価額直接入力
+    const costVal = parseFloat(document.getElementById('f-etf-cost').value);
+    const valueVal = parseFloat(document.getElementById('f-etf-value').value);
+    if (!name || isNaN(costVal) || isNaN(valueVal)) {
+      alert('銘柄名・取得金額・評価額を入力してください');
+      return;
+    }
+    // qty=1, buyPrice=取得金額, currentPrice=評価額 として保存
+    qty = 1;
+    currency = 'JPY';
+    buyPrice = costVal;
+    currentPriceVal = valueVal;
+    dailyVal = parseFloat(document.getElementById('f-daily')?.value)||0;
+  } else {
+    qty = parseFloat(document.getElementById('f-qty').value);
+    currency = document.getElementById('f-currency').value;
+    buyPrice = parseFloat(document.getElementById('f-buy').value);
+    currentPriceVal = parseFloat(document.getElementById('f-current').value);
+    dailyVal = parseFloat(document.getElementById('f-daily')?.value)||0;
+
+    if (!name || isNaN(qty) || isNaN(buyPrice)) {
+      alert('必要な項目を入力してください');
+      return;
+    }
+    if (!isAuto && isNaN(currentPriceVal)) {
+      alert('現在価格を入力してください');
+      return;
+    }
   }
 
   if (editingId) {
@@ -659,8 +723,18 @@ async function importXLSX(file) {
 
       const currency = type==='us'?'USD':'JPY';
       const isAuto = AUTO_TYPES.includes(type);
-      imported.push({ id:idBase++, name, ticker, type, currency, qty, buyPrice,
-        currentPrice: isAuto?0:currentPrice, dailyChange:0, autoPrice:false });
+
+      let finalQty = qty, finalBuy = buyPrice, finalCurrent = currentPrice;
+      if (type === 'etf') {
+        // 投資信託: qty=1, buyPrice=取得金額合計, currentPrice=評価額
+        finalQty = 1;
+        finalBuy = qty * buyPrice;      // 保有口数×取得単価=取得金額
+        finalCurrent = parseFloat(rows[i][6]) || qty * currentPrice; // 評価額列があれば使う
+      }
+
+      imported.push({ id:idBase++, name, ticker, type, currency,
+        qty: finalQty, buyPrice: finalBuy,
+        currentPrice: isAuto?0:finalCurrent, dailyChange:0, autoPrice:false });
     }
   }
   finalizeImport(imported);
