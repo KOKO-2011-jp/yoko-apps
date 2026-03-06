@@ -66,15 +66,15 @@ const CRYPTO_IDS = {
   DOT:'polkadot', MATIC:'matic-network', LTC:'litecoin', LINK:'chainlink',
 };
 
-// 投資信託のファンドコード（Yahoo Finance Japan経由）
+// 投資信託の協会コード（三菱UFJアセットマネジメントAPIで取得）
 const FUND_CODES = {
-  'TGNP': '02311251',  // Tracers NASDAQ100ゴールドプラス
-  'IFFL': '04314208',  // iFreeレバレッジ FANG+
+  'TGNP':  '02311251', // Tracers NASDAQ100ゴールドプラス
+  'IFFL':  '04314208', // iFreeレバレッジ FANG+
   'SBI43': '8931317C', // SBI 日本株4.3ブル
   'USTEC': '64312243', // 米国大型テクノロジー株式ファンド
   'SMTUS': '6431225C', // SMT 米国株式モメンタムファンド
-  'EMAXIS': '03311182', // eMAXIS Slim 国内株式(日経平均)
-  'IFANG': '04311181',  // iFreeNEXT FANG+インデックス
+  'EMAXIS':'03311182', // eMAXIS Slim 国内株式(日経平均)
+  'IFANG': '04311181', // iFreeNEXT FANG+インデックス
 };
 
 // 米国株のティッカー（Yahoo Finance経由）
@@ -218,28 +218,24 @@ async function fetchETFPrices() {
   if (!etfAssets.length) return;
 
   for (const a of etfAssets) {
-    const fundCode = FUND_CODES[a.ticker.toUpperCase()];
-    if (!fundCode) continue; // ファンドコード不明はスキップ
+    const assocCode = FUND_CODES[a.ticker.toUpperCase()];
+    if (!assocCode) continue;
     try {
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${fundCode}.T?interval=1d&range=2d`;
+      // 三菱UFJアセットマネジメント ファンド情報API
+      const url = `https://developer.am.mufg.jp/fund_information_latest/association_fund_cd/${assocCode}`;
       const res = await fetchWithFallback(url);
       const data = await res.json();
-      const result = data?.chart?.result?.[0];
-      if (result) {
-        const meta = result.meta;
-        const price = meta.regularMarketPrice;
-        const prev = meta.chartPreviousClose;
-        if (price) {
-          prevPrices[a.id] = a.currentPrice;
-          // 投資信託はqty=1, currentPrice=評価額として保存
-          // 新しい基準価額で評価額を再計算: 取得口数×新価格÷10000
-          // でも口数が不明なので、基準価額の変化率で評価額を更新
-          const changeRate = prev ? price / prev : 1;
-          a.currentPrice = Math.round(a.currentPrice * changeRate);
-          a.dailyChange = prev ? +((( price - prev) / prev) * 100).toFixed(2) : 0;
-          a.autoPrice = true;
-          a.autoPriceFailed = false;
-        }
+      const fund = data?.detaets?.[0]?.value?.[0];
+      if (fund && fund.nav) {
+        const nav = parseFloat(fund.nav);           // 基準価額（1万口あたり）
+        const prevNav = nav - parseFloat(fund.cmp_prev_day || 0);
+        prevPrices[a.id] = a.currentPrice;
+        // 評価額 = 現在評価額 × (新NAV / 前日NAV)
+        const changeRate = prevNav > 0 ? nav / prevNav : 1;
+        a.currentPrice = Math.round(a.currentPrice * changeRate);
+        a.dailyChange = prevNav > 0 ? +((nav - prevNav) / prevNav * 100).toFixed(2) : 0;
+        a.autoPrice = true;
+        a.autoPriceFailed = false;
       }
     } catch(e) {
       console.warn(`${a.ticker}の投信価格取得失敗:`, e.message);
@@ -427,7 +423,7 @@ function render() {
 
     <!-- 更新時刻 -->
     <div style="padding:6px 16px 0;font-size:10px;color:#555">
-      🟢 日本株・米国株・仮想通貨は自動取得 ／ 投信は手動入力 ｜ 最終更新: ${updatedStr}
+      🟢 日本株・米国株・仮想通貨・投信は自動取得（三菱UFJ API） ｜ 最終更新: ${updatedStr}
     </div>
 
     <!-- 総資産 -->
