@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家計カード分析</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg: #f4f1ec;
+  --bg2: #e9e5dc;
+  --surface: #ffffff;
+  --ink: #1c1917;
+  --ink2: #57534e;
+  --ink3: #a8a29e;
+  --red: #dc2626;
+  --blue: #2563eb;
+  --green: #16a34a;
+  --amber: #d97706;
+  --purple: #7c3aed;
+  --teal: #0d9488;
+  --border: #e2ddd6;
+  --shadow: 0 1px 12px rgba(0,0,0,0.07);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
+.page { max-width: 1080px; margin: 0 auto; padding: 28px 16px 60px; }
+
+header {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  border-bottom: 2.5px solid var(--ink); padding-bottom: 14px; margin-bottom: 28px;
+}
+.brand-sub { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--ink3); font-family: 'Syne', sans-serif; }
+.brand-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+.brand-title em { font-style: normal; color: var(--red); }
+
+.upload-zone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 240px; border: 2px dashed var(--border); border-radius: 6px;
+  background: var(--surface); cursor: pointer; transition: all 0.2s; text-align: center; padding: 40px;
+}
+.upload-zone:hover, .upload-zone.over { border-color: var(--red); background: #fff5f5; }
+.upload-zone h2 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin: 12px 0 6px; }
+.upload-zone p { color: var(--ink2); font-size: 13px; line-height: 1.7; margin-bottom: 18px; }
+#file-input { display: none; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border-radius: 5px; font-size: 13px; font-weight: 600;
+  font-family: 'Noto Sans JP', sans-serif; cursor: pointer; border: 2px solid transparent; transition: all 0.15s;
+}
+.btn-dark { background: var(--ink); color: white; }
+.btn-dark:hover { background: var(--red); }
+.btn-outline { background: transparent; border-color: var(--border); color: var(--ink2); }
+.btn-outline:hover { border-color: var(--ink); color: var(--ink); }
+.btn-ai { background: var(--ink); color: white; font-family: 'Syne', sans-serif; font-weight: 800; }
+.btn-ai:hover { background: var(--red); }
+.btn-ai:disabled { background: var(--ink3); cursor: not-allowed; }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+.main { display: none; }
+.main.visible { display: block; animation: fadeUp 0.35s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+.file-badge {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 14px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 5px; margin-bottom: 20px; font-size: 13px;
+}
+.file-badge strong { font-family: 'Syne', sans-serif; }
+
+.sec-label { font-family: 'Syne', sans-serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--ink3); margin-bottom: 10px; }
+
+.sheet-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+.chip {
+  display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+  border: 2px solid var(--border); border-radius: 5px; cursor: pointer;
+  font-size: 13px; font-weight: 500; background: var(--surface); transition: all 0.15s; user-select: none;
+}
+.chip:hover { border-color: var(--ink2); }
+.chip.on { border-color: var(--ink); background: var(--ink); color: white; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.action-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 16px; }
+.stat-month { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink3); margin-bottom: 4px; }
+.stat-total { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -1px; }
+.stat-total small { font-size: 13px; font-weight: 400; }
+.stat-delta { font-size: 11px; font-weight: 700; margin-top: 4px; }
+.up { color: var(--red); } .down { color: var(--green); }
+
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+@media (max-width: 600px) { .charts-grid { grid-template-columns: 1fr; } }
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 18px; box-shadow: var(--shadow); }
+.chart-card.wide { grid-column: 1 / -1; }
+.chart-title { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--ink2); margin-bottom: 14px; }
+.chart-wrap { position: relative; height: 210px; }
+
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; overflow-x: auto; box-shadow: var(--shadow); margin-bottom: 24px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: var(--bg2); padding: 9px 14px; text-align: left; font-family: 'Syne', sans-serif; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink2); border-bottom: 2px solid var(--border); white-space: nowrap; }
+td { padding: 9px 14px; border-bottom: 1px solid var(--bg); white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+td.num { font-family: 'Syne', sans-serif; font-weight: 600; text-align: right; }
+td.inc { color: var(--red); } td.dec { color: var(--green); } td.zero { color: var(--ink3); }
+
+.ai-panel { background: var(--ink); color: #f0ece3; border-radius: 6px; padding: 26px; margin-bottom: 24px; position: relative; overflow: hidden; }
+.ai-panel::before { content: 'AI'; position: absolute; right: -8px; top: -24px; font-family: 'Syne', sans-serif; font-size: 110px; font-weight: 800; color: rgba(255,255,255,0.04); pointer-events: none; line-height: 1; }
+.ai-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: var(--red); margin-bottom: 14px; }
+.ai-loading { display: flex; align-items: center; gap: 10px; color: rgba(240,236,227,0.45); font-size: 14px; }
+.spinner { width: 16px; height: 16px; border: 2px solid rgba(220,38,38,0.3); border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ai-body { font-size: 13.5px; line-height: 1.85; color: #ccc8bf; }
+.ai-body h3 { font-family: 'Syne', sans-serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #dc6060; margin: 14px 0 6px; }
+.ai-body p { margin-bottom: 6px; }
+.ai-body ul { padding-left: 18px; margin-bottom: 6px; }
+.ai-body li { margin-bottom: 3px; }
+.ai-body strong { color: #e8e3d8; }
+
+.hidden { display: none !important; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div>
+      <div class="brand-sub">Monthly Card</div>
+      <h1 class="brand-title">家計 <em>Analyzer</em></h1>
+    </div>
+    <button class="btn btn-outline btn-sm hidden" id="reset-btn" onclick="resetApp()">← 別のファイル</button>
+  </header>
+
+  <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+    <div style="font-size:48px">📂</div>
+    <h2>Excelをタップ／ドロップ</h2>
+    <p>1ファイルずつ追加できます ✓<br>1ファイル複数シートもOK ✓</p>
+    <button class="btn btn-dark" onclick="event.stopPropagation();document.getElementById('file-input').click()">ファイルを選択</button>
+  </div>
+  <input type="file" id="file-input" accept=".xlsx,.xls">
+
+  <!-- ファイル追加済みの場合のバナー -->
+  <div id="add-more-bar" class="hidden" style="margin-bottom:16px">
+    <div class="file-badge" id="file-badge"></div>
+    <button class="btn btn-outline" style="width:100%;justify-content:center;margin-top:8px" onclick="document.getElementById('file-input2').click()">＋ もう1ファイル追加</button>
+    <input type="file" id="file-input2" accept=".xlsx,.xls" style="display:none">
+  </div>
+
+  <div class="main" id="main">
+    <div class="sec-label">比較する月を選択（複数可）</div>
+    <div class="sheet-grid" id="sheet-grid"></div>
+
+    <div class="action-bar">
+      <button class="btn btn-dark" onclick="runAnalysis()">📊 比較・グラフ表示</button>
+      <button class="btn btn-ai" id="ai-btn" onclick="runAI()" disabled>✦ AI分析</button>
+    </div>
+
+    <div id="stats-section" class="hidden">
+      <div class="sec-label">月別合計</div>
+      <div class="stats-grid" id="stats-grid"></div>
+    </div>
+
+    <div class="ai-panel hidden" id="ai-panel">
+      <div class="ai-title">✦ AI Analysis</div>
+      <div class="ai-loading hidden" id="ai-loading"><div class="spinner"></div><span>分析中...</span></div>
+      <div class="ai-body" id="ai-body"></div>
+    </div>
+
+    <div id="charts-section" class="hidden">
+      <div class="sec-label" style="margin-bottom:12px">グラフ</div>
+      <div class="charts-grid">
+        <div class="chart-card wide">
+          <div class="chart-title">カテゴリ別比較（積み上げ棒）</div>
+          <div class="chart-wrap"><canvas id="chart-stack"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">カテゴリ別金額（月ごと）</div>
+          <div class="chart-wrap"><canvas id="chart-cat"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">差分（基準月比 ▲赤=増 ▼緑=減）</div>
+          <div class="chart-wrap"><canvas id="chart-diff"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="table-section" class="hidden">
+      <div class="sec-label">カテゴリ別差分テーブル</div>
+      <div class="table-wrap"><table id="cat-table"></table></div>
+    </div>
+
+    <div id="detail-section" class="hidden">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap">
+        <div class="sec-label" style="margin:0">明細一覧</div>
+        <select id="detail-sheet-sel" style="padding:5px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:white;font-family:inherit" onchange="renderDetailTable()"></select>
+      </div>
+      <div class="table-wrap"><table id="detail-table"></table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS = ['#dc2626','#2563eb','#16a34a','#d97706','#7c3aed','#0d9488','#db2777'];
+let allSheets = []; // {label, wb, fileName}
+let selectedSheets = [], analysisData = null, charts = {};
+
+const uploadZone = document.getElementById('upload-zone');
+const fileInput  = document.getElementById('file-input');
+const fileInput2 = document.getElementById('file-input2');
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('over');
+  if (e.dataTransfer.files[0]) addFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) addFile(e.target.files[0]); fileInput.value=''; });
+fileInput2.addEventListener('change', e => { if (e.target.files[0]) addFile(e.target.files[0]); fileInput2.value=''; });
+
+function addFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+    wb.SheetNames.forEach(name => allSheets.push({ label: name, wb, fileName: file.name }));
+
+    // Show main on first file
+    uploadZone.classList.add('hidden');
+    document.getElementById('add-more-bar').classList.remove('hidden');
+    document.getElementById('reset-btn').classList.remove('hidden');
+    document.getElementById('main').classList.add('visible');
+
+    updateFileBadge();
+    buildSheetGrid();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function updateFileBadge() {
+  const fileNames = [...new Set(allSheets.map(s => s.fileName))];
+  document.getElementById('file-badge').innerHTML =
+    fileNames.map(n => `<span>📄 <strong>${n}</strong></span>`).join('<span style="color:var(--ink3)"> | </span>') +
+    `<span style="color:var(--ink3);margin-left:8px">${allSheets.length} シート</span>`;
+}
+
+function resetApp() {
+  allSheets = []; selectedSheets = []; analysisData = null;
+  document.getElementById('main').classList.remove('visible');
+  document.getElementById('add-more-bar').classList.add('hidden');
+  uploadZone.classList.remove('hidden');
+  document.getElementById('reset-btn').classList.add('hidden');
+  hideAll();
+}
+
+function buildSheetGrid() {
+  const grid = document.getElementById('sheet-grid');
+  grid.innerHTML = '';
+  allSheets.forEach(({ label, fileName }, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'chip on';
+    chip.dataset.idx = i;
+    // Show filename prefix if multiple files
+    const fileNames = [...new Set(allSheets.map(s => s.fileName))];
+    const prefix = fileNames.length > 1 ? `<span style="font-size:10px;opacity:0.6;margin-right:2px">${fileName.replace('.xlsx','').replace('.xls','')} /</span>` : '';
+    chip.innerHTML = `<span class="dot" style="background:${COLORS[i % COLORS.length]}"></span>${prefix}${label}`;
+    chip.onclick = () => { chip.classList.toggle('on'); syncSelected(); };
+    grid.appendChild(chip);
+  });
+  syncSelected();
+}
+
+function syncSelected() {
+  selectedSheets = [...document.querySelectorAll('.chip.on')].map(c => parseInt(c.dataset.idx));
+}
+
+// Parse: row0=title, row1=headers, row2+=data
+function parseSheet(idx) {
+  const { label, wb } = allSheets[idx];
+  const ws = wb.Sheets[label];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+  let hRow = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].some(c => String(c).includes('日付') || String(c).includes('金額'))) { hRow = i; break; }
+  }
+  if (hRow < 0) return null;
+
+  const headers = rows[hRow].map(h => String(h));
+  const dateCol = headers.findIndex(h => h.includes('日付'));
+  const shopCol = headers.findIndex(h => h.includes('店舗'));
+  const catCol  = headers.findIndex(h => h === 'カテゴリ');
+  const amtCol  = headers.findIndex(h => h.includes('金額'));
+  const catCols   = headers.reduce((acc, h, i) => h === 'カテゴリ' ? [...acc, i] : acc, []);
+  const sumCatCol = catCols[1] ?? -1;
+  const sumAmtCol = headers.findIndex(h => h.includes('合計'));
+
+  const details = [];
+  const catSummary = {};
+
+  for (let i = hRow + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (dateCol >= 0 && r[dateCol] !== '' && typeof r[amtCol] === 'number') {
+      details.push({ date: String(r[dateCol]), shop: String(r[shopCol] || ''), cat: String(r[catCol] || 'その他'), amt: r[amtCol] });
+    }
+    if (sumCatCol >= 0 && r[sumCatCol] !== '' && typeof r[sumAmtCol] === 'number') {
+      catSummary[String(r[sumCatCol])] = r[sumAmtCol];
+    }
+  }
+
+  let catMap = Object.keys(catSummary).length ? catSummary : {};
+  if (!Object.keys(catMap).length) {
+    details.forEach(d => { catMap[d.cat] = (catMap[d.cat] || 0) + d.amt; });
+  }
+
+  const total = Object.values(catMap).reduce((a, b) => a + b, 0);
+  return { name: label, details, catMap, total };
+}
+
+function runAnalysis() {
+  if (!selectedSheets.length) { alert('シートを選択してください'); return; }
+  analysisData = selectedSheets.map(parseSheet).filter(Boolean);
+  if (!analysisData.length) return;
+
+  renderStats();
+  renderCharts();
+  renderCatTable();
+  renderDetailSheetSelect();
+  renderDetailTable();
+
+  ['stats-section','charts-section','table-section','detail-section'].forEach(id =>
+    document.getElementById(id).classList.remove('hidden'));
+  document.getElementById('ai-btn').disabled = false;
+}
+
+function hideAll() {
+  ['stats-section','charts-section','table-section','detail-section','ai-panel'].forEach(id =>
+    document.getElementById(id).classList.add('hidden'));
+  document.getElementById('ai-btn').disabled = true;
+  document.getElementById('ai-body').innerHTML = '';
+}
+
+function renderStats() {
+  const grid = document.getElementById('stats-grid');
+  grid.innerHTML = '';
+  analysisData.forEach((s, i) => {
+    const prev = analysisData[i - 1];
+    let deltaHtml = '';
+    if (prev) {
+      const diff = s.total - prev.total;
+      const pct = prev.total ? ((diff / prev.total) * 100).toFixed(1) : '—';
+      const cls = diff > 0 ? 'up' : 'down';
+      const sign = diff > 0 ? '▲' : '▼';
+      deltaHtml = `<div class="stat-delta ${cls}">${sign} ${Math.abs(diff).toLocaleString()}円 (${sign}${Math.abs(pct)}%)</div>`;
+    }
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+    card.style.borderTop = `3px solid ${COLORS[i % COLORS.length]}`;
+    card.innerHTML = `<div class="stat-month">${s.name}</div>
+      <div class="stat-total">${s.total.toLocaleString()}<small>円</small></div>${deltaHtml}`;
+    grid.appendChild(card);
+  });
+}
+
+function renderCharts() {
+  Object.values(charts).forEach(c => c && c.destroy());
+  charts = {};
+
+  const allCats = [...new Set(analysisData.flatMap(s => Object.keys(s.catMap)))];
+  const baseOpts = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { font: { family: 'Syne', size: 11 }, color: '#57534e', boxWidth: 10 } } },
+    scales: {
+      x: { ticks: { font: { size: 11 }, color: '#a8a29e' }, grid: { color: '#e9e5dc' } },
+      y: { ticks: { font: { size: 11 }, color: '#a8a29e' }, grid: { color: '#e9e5dc' } }
+    }
+  };
+
+  // Stacked bar
+  charts.stack = new Chart(document.getElementById('chart-stack'), {
+    type: 'bar',
+    data: {
+      labels: analysisData.map(s => s.name),
+      datasets: allCats.map((cat, ci) => ({
+        label: cat,
+        data: analysisData.map(s => s.catMap[cat] || 0),
+        backgroundColor: COLORS[ci % COLORS.length] + 'cc',
+        borderColor: COLORS[ci % COLORS.length],
+        borderWidth: 1, borderRadius: 2,
+      }))
+    },
+    options: { ...baseOpts, scales: { x: { ...baseOpts.scales.x, stacked: true }, y: { ...baseOpts.scales.y, stacked: true } } }
+  });
+
+  // Grouped by category
+  charts.cat = new Chart(document.getElementById('chart-cat'), {
+    type: 'bar',
+    data: {
+      labels: allCats,
+      datasets: analysisData.map((s, i) => ({
+        label: s.name,
+        data: allCats.map(c => s.catMap[c] || 0),
+        backgroundColor: COLORS[i % COLORS.length] + 'bb',
+        borderColor: COLORS[i % COLORS.length],
+        borderWidth: 1.5, borderRadius: 3,
+      }))
+    },
+    options: baseOpts
+  });
+
+  // Diff vs first
+  if (analysisData.length >= 2) {
+    const base = analysisData[0];
+    charts.diff = new Chart(document.getElementById('chart-diff'), {
+      type: 'bar',
+      data: {
+        labels: allCats,
+        datasets: analysisData.slice(1).map((s, i) => ({
+          label: `${s.name} vs ${base.name}`,
+          data: allCats.map(c => (s.catMap[c] || 0) - (base.catMap[c] || 0)),
+          backgroundColor: allCats.map(c => ((s.catMap[c] || 0) - (base.catMap[c] || 0)) >= 0 ? '#dc262677' : '#16a34a77'),
+          borderColor: allCats.map(c => ((s.catMap[c] || 0) - (base.catMap[c] || 0)) >= 0 ? '#dc2626' : '#16a34a'),
+          borderWidth: 1.5, borderRadius: 3,
+        }))
+      },
+      options: baseOpts
+    });
+  }
+}
+
+function renderCatTable() {
+  const allCats = [...new Set(analysisData.flatMap(s => Object.keys(s.catMap)))];
+  const base = analysisData[0];
+  let html = '<thead><tr><th>カテゴリ</th>';
+  analysisData.forEach(s => html += `<th style="text-align:right">${s.name}</th>`);
+  for (let i = 1; i < analysisData.length; i++)
+    html += `<th style="text-align:right">差分 vs ${base.name}</th>`;
+  html += '</tr></thead><tbody>';
+
+  allCats.forEach(cat => {
+    html += `<tr><td>${cat}</td>`;
+    analysisData.forEach(s => { const v = s.catMap[cat]; html += `<td class="num">${v !== undefined ? v.toLocaleString()+'円' : '—'}</td>`; });
+    for (let i = 1; i < analysisData.length; i++) {
+      const d = (analysisData[i].catMap[cat] || 0) - (base.catMap[cat] || 0);
+      const cls = d > 0 ? 'inc' : d < 0 ? 'dec' : 'zero';
+      html += `<td class="num ${cls}">${d > 0 ? '+' : ''}${d.toLocaleString()}円</td>`;
+    }
+    html += '</tr>';
+  });
+
+  html += `<tr style="font-weight:700;border-top:2px solid var(--border)"><td>合計</td>`;
+  analysisData.forEach(s => html += `<td class="num">${s.total.toLocaleString()}円</td>`);
+  for (let i = 1; i < analysisData.length; i++) {
+    const d = analysisData[i].total - base.total;
+    const cls = d > 0 ? 'inc' : d < 0 ? 'dec' : 'zero';
+    html += `<td class="num ${cls}">${d > 0 ? '+' : ''}${d.toLocaleString()}円</td>`;
+  }
+  html += '</tr></tbody>';
+  document.getElementById('cat-table').innerHTML = html;
+}
+
+function renderDetailSheetSelect() {
+  const sel = document.getElementById('detail-sheet-sel');
+  sel.innerHTML = analysisData.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+}
+
+function renderDetailTable() {
+  const name = document.getElementById('detail-sheet-sel').value;
+  const sheet = analysisData.find(s => s.name === name);
+  if (!sheet) return;
+  let html = '<thead><tr><th>日付</th><th>店舗名</th><th>カテゴリ</th><th style="text-align:right">金額</th></tr></thead><tbody>';
+  sheet.details.forEach(d => {
+    html += `<tr><td>${d.date}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${d.shop}</td><td>${d.cat}</td><td class="num">${d.amt.toLocaleString()}円</td></tr>`;
+  });
+  html += '</tbody>';
+  document.getElementById('detail-table').innerHTML = html;
+}
+
+async function runAI() {
+  if (!analysisData) return;
+  const panel = document.getElementById('ai-panel');
+  const loading = document.getElementById('ai-loading');
+  const body = document.getElementById('ai-body');
+  panel.classList.remove('hidden');
+  loading.classList.remove('hidden');
+  body.innerHTML = '';
+
+  const summary = analysisData.map(s => {
+    const cats = Object.entries(s.catMap).map(([k, v]) => `${k}:${v}円`).join(', ');
+    return `【${s.name}】合計=${s.total.toLocaleString()}円\n内訳: ${cats}`;
+  }).join('\n\n');
+
+  const base = analysisData[0];
+  const diffs = analysisData.slice(1).map(s => {
+    const allKeys = [...new Set([...Object.keys(base.catMap), ...Object.keys(s.catMap)])];
+    const lines = allKeys.map(cat => {
+      const d = (s.catMap[cat] || 0) - (base.catMap[cat] || 0);
+      return d !== 0 ? `${cat}: ${d > 0 ? '+' : ''}${d.toLocaleString()}円` : null;
+    }).filter(Boolean).join(', ');
+    return `${base.name}→${s.name}: ${lines}`;
+  }).join('\n');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514', max_tokens: 1000,
+        messages: [{ role: 'user', content:
+          `家計カードの月別支出データを日本語で分析してください。\n\n${summary}\n\n差分:\n${diffs}\n\n以下を分析:\n1. 各月の支出傾向と特徴\n2. カテゴリ別の増減と注目点\n3. 節約できそうなポイント\n4. 総評とアドバイス` }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(b => b.text || '').join('') || 'エラーが発生しました';
+    loading.classList.add('hidden');
+    body.innerHTML = text
+      .replace(/^###?\s(.+)$/gm, '<h3>$1</h3>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^[-・]\s(.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>[\s\S]*?<\/li>)+/g, m => `<ul>${m}</ul>`)
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/^(?!<[hup])(.+)$/gm, '<p>$1</p>');
+  } catch(e) {
+    loading.classList.add('hidden');
+    body.innerHTML = `<p style="color:#f87171">エラー: ${e.message}</p>`;
+  }
+}
+</script>
+</body>
+</html>
