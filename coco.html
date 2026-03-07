@@ -1,309 +1,20 @@
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ココちゃん星占い</title>
-  <style>
-    :root{
-      --bg:#f6f7fb;
-      --card:#ffffff;
-      --text:#202334;
-      --muted:#6b7280;
-      --accent:#ff7aa2;
-      --shadow: 0 14px 40px rgba(20,20,40,.12);
-      --radius: 18px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
-      color:var(--text);
-      background:
-        radial-gradient(1200px 800px at 20% 0%, #ffe4ef 0%, transparent 55%),
-        radial-gradient(1200px 800px at 90% 10%, #e7e7ff 0%, transparent 50%),
-        var(--bg);
-    }
-    .wrap{
-      max-width:900px;
-      margin:0 auto;
-      padding:22px 16px 44px;
-    }
-    .badge{
-      display:inline-block;
-      background:#fff;
-      border:1px solid #f0f0f5;
-      border-radius:999px;
-      padding:8px 12px;
-      color:#e11d48;
-      font-weight:700;
-      box-shadow:0 6px 18px rgba(20,20,40,.06);
-    }
-    h1{
-      margin:14px 0 6px;
-      font-size:32px;
-    }
-    .sub{
-      color:var(--muted);
-      margin:0 0 18px;
-      line-height:1.6;
-    }
-    .grid{
-      display:grid;
-      gap:14px;
-      grid-template-columns:1fr;
-    }
-    @media (min-width: 860px){
-      .grid{grid-template-columns:1.1fr .9fr;}
-    }
-    .card{
-      background:var(--card);
-      border:1px solid #f0f0f5;
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      padding:18px;
-    }
-    .card h2{
-      margin:0 0 10px;
-      font-size:18px;
-    }
-    label{
-      display:block;
-      font-size:13px;
-      font-weight:700;
-      margin-bottom:6px;
-      color:#3b3f55;
-    }
-    input, select{
-      width:100%;
-      padding:12px;
-      border-radius:12px;
-      border:1px solid #e7e7ef;
-      font-size:16px;
-      background:#fff;
-    }
-    input:focus, select:focus{
-      border-color:#ff9abb;
-      box-shadow:0 0 0 4px rgba(255,122,162,.12);
-      outline:none;
-    }
-    .two{
-      display:grid;
-      gap:10px;
-      grid-template-columns:1fr;
-    }
-    @media (min-width: 520px){
-      .two{grid-template-columns:1fr 1fr;}
-    }
-    .btn{
-      width:100%;
-      border:none;
-      border-radius:14px;
-      padding:14px;
-      font-size:17px;
-      font-weight:800;
-      color:#fff;
-      background:linear-gradient(90deg, #ff7aa2, #ffb454);
-      box-shadow:0 12px 26px rgba(255,122,162,.25);
-      margin-top:12px;
-      cursor:pointer;
-    }
-    .btn2{
-      width:100%;
-      border:none;
-      border-radius:14px;
-      padding:12px 14px;
-      font-size:15px;
-      font-weight:800;
-      color:#2b2f45;
-      background:#f3f4ff;
-      border:1px solid #e7e7ff;
-      margin-top:10px;
-      cursor:pointer;
-    }
-    .big{
-      font-size:28px;
-      font-weight:900;
-      margin:2px 0 6px;
-    }
-    .stars{
-      font-size:22px;
-      color:#f59e0b;
-      letter-spacing:.06em;
-    }
-    .msg{
-      margin-top:12px;
-      padding:14px;
-      border-radius:14px;
-      background:#fafafc;
-      border:1px solid #f0f0f5;
-      line-height:1.7;
-    }
-    .miniGrid{
-      display:grid;
-      gap:10px;
-      grid-template-columns:1fr;
-      margin-top:12px;
-    }
-    @media (min-width: 520px){
-      .miniGrid{grid-template-columns:1fr 1fr;}
-    }
-    .pill{
-      padding:12px;
-      border-radius:14px;
-      background:#fff;
-      border:1px solid #f0f0f5;
-      box-shadow:0 10px 24px rgba(20,20,40,.06);
-    }
-    .k{
-      font-size:12px;
-      color:var(--muted);
-      font-weight:800;
-    }
-    .v{
-      margin-top:6px;
-      font-size:16px;
-      font-weight:900;
-      color:#1f2336;
-    }
-    .footerLink{
-      margin-top:14px;
-      text-align:center;
-    }
-    .footerLink a{
-      color:#2563eb;
-      text-decoration:none;
-      font-weight:800;
-    }
-    .note{
-      margin-top:10px;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.6;
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="badge">🐱 ココちゃん星占い Ver.2</div>
-    <h1>今日の運勢</h1>
-    <p class="sub">誕生日から星座を判定して、ココちゃんが今日の運勢をお伝えします🐾</p>
-
-    <div class="grid">
-      <div class="card">
-        <h2>入力</h2>
-        <div class="two">
-          <div>
-            <label for="birthday">誕生日</label>
-            <input id="birthday" type="date" />
-          </div>
-          <div>
-            <label for="mode">占いモード</label>
-            <select id="mode">
-              <option value="normal">ふつう</option>
-              <option value="love">恋愛</option>
-              <option value="work">仕事</option>
-              <option value="money">お金</option>
-              <option value="health">健康</option>
-            </select>
-          </div>
-        </div>
-
-        <button class="btn" id="btnFortune">🐾 ココちゃん、占って！</button>
-        <button class="btn2" id="btnCopy">📋 結果をコピー</button>
-
-        <p class="note">
-          ※これは西洋占星術の一般的な星座分類をもとにしたエンタメ版です。出生時間・出生地を使う本格ホロスコープではありません。
-        </p>
-      </div>
-
-      <div class="card">
-        <h2>結果</h2>
-        <div class="big" id="headline">準備OK？</div>
-        <div class="stars" id="stars">★★★★★</div>
-        <div style="margin-top:8px; font-weight:900; color:#7c5cff" id="sign">星座：-</div>
-        <div style="margin-top:6px; color:#6b7280; font-weight:700" id="dateLabel">日付：-</div>
-
-        <div class="msg" id="message">
-          まだ占いは出ていません。<br>
-          左のボタンでココちゃんに聞いてみてください。
-        </div>
-
-        <div class="miniGrid">
-          <div class="pill">
-            <div class="k">性格タイプ</div>
-            <div class="v" id="personality">-</div>
-          </div>
-          <div class="pill">
-            <div class="k">ラッキーカラー</div>
-            <div class="v" id="luckyColor">-</div>
-          </div>
-          <div class="pill">
-            <div class="k">ラッキー曜日</div>
-            <div class="v" id="luckyDay">-</div>
-          </div>
-          <div class="pill">
-            <div class="k">ラッキーアイテム</div>
-            <div class="v" id="luckyItem">-</div>
-          </div>
-          <div class="pill">
-            <div class="k">ラッキーフード</div>
-            <div class="v" id="luckyFood">-</div>
-          </div>
-          <div class="pill">
-            <div class="k">今日の合言葉</div>
-            <div class="v" id="keyword">-</div>
-          </div>
-        </div>
-
-        <div class="footerLink">
-          <a href="./index.html">← 展示場にもどる</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
 <script>
-function xmur3(str) {
-  let h = 1779033703 ^ str.length;
-  for (let i = 0; i < str.length; i++) {
-    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
-    h = (h << 13) | (h >>> 19);
-  }
-  return function() {
-    h = Math.imul(h ^ (h >>> 16), 2246822507);
-    h = Math.imul(h ^ (h >>> 13), 3266489909);
-    h ^= h >>> 16;
-    return h >>> 0;
-  };
-}
-function mulberry32(a) {
-  return function() {
-    let t = a += 0x6D2B79F5;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-function pick(rng, arr){ return arr[Math.floor(rng() * arr.length)]; }
-function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
-
-const SIGNS = [
-  { name:"牡羊座", start:[3,21], end:[4,19], emoji:"♈", personality:"情熱的で行動力がある", color:"赤", day:"火曜日" },
-  { name:"牡牛座", start:[4,20], end:[5,20], emoji:"♉", personality:"落ち着きがあり粘り強い", color:"緑", day:"金曜日" },
-  { name:"双子座", start:[5,21], end:[6,21], emoji:"♊", personality:"好奇心旺盛で会話上手", color:"黄色", day:"水曜日" },
-  { name:"蟹座",   start:[6,22], end:[7,22], emoji:"♋", personality:"優しく家庭的で思いやりがある", color:"白", day:"月曜日" },
-  { name:"獅子座", start:[7,23], end:[8,22], emoji:"♌", personality:"華やかで自信にあふれる", color:"金", day:"日曜日" },
-  { name:"乙女座", start:[8,23], end:[9,22], emoji:"♍", personality:"丁寧で分析力が高い", color:"ベージュ", day:"水曜日" },
-  { name:"天秤座", start:[9,23], end:[10,23], emoji:"♎", personality:"美意識が高くバランス感覚がある", color:"ピンク", day:"金曜日" },
-  { name:"蠍座",   start:[10,24], end:[11,22], emoji:"♏", personality:"集中力が高く情が深い", color:"深紅", day:"火曜日" },
-  { name:"射手座", start:[11,23], end:[12,21], emoji:"♐", personality:"自由で前向き、冒険好き", color:"紫", day:"木曜日" },
-  { name:"山羊座", start:[12,22], end:[1,19], emoji:"♑", personality:"まじめで責任感が強い", color:"黒", day:"土曜日" },
-  { name:"水瓶座", start:[1,20], end:[2,18], emoji:"♒", personality:"個性的で発想がユニーク", color:"青", day:"土曜日" },
-  { name:"魚座",   start:[2,19], end:[3,20], emoji:"♓", personality:"感受性豊かでやさしい", color:"水色", day:"木曜日" }
-];
-
 function getSign(month, day){
+  const SIGNS = [
+    { name:"牡羊座", start:[3,21], end:[4,19], emoji:"♈" },
+    { name:"牡牛座", start:[4,20], end:[5,20], emoji:"♉" },
+    { name:"双子座", start:[5,21], end:[6,21], emoji:"♊" },
+    { name:"蟹座",   start:[6,22], end:[7,22], emoji:"♋" },
+    { name:"獅子座", start:[7,23], end:[8,22], emoji:"♌" },
+    { name:"乙女座", start:[8,23], end:[9,22], emoji:"♍" },
+    { name:"天秤座", start:[9,23], end:[10,23], emoji:"♎" },
+    { name:"蠍座",   start:[10,24], end:[11,22], emoji:"♏" },
+    { name:"射手座", start:[11,23], end:[12,21], emoji:"♐" },
+    { name:"山羊座", start:[12,22], end:[1,19], emoji:"♑" },
+    { name:"水瓶座", start:[1,20], end:[2,18], emoji:"♒" },
+    { name:"魚座",   start:[2,19], end:[3,20], emoji:"♓" }
+  ];
+
   for(const s of SIGNS){
     const [sm, sd] = s.start;
     const [em, ed] = s.end;
@@ -316,158 +27,82 @@ function getSign(month, day){
   return null;
 }
 
-const ITEMS = ["お気に入りのペン","ハンドクリーム","ノート","イヤホン","猫の写真","リップバーム","小さな鏡","お守り","温かい靴下","折りたたみ傘"];
-const FOODS = ["ヨーグルト","お味噌汁","チョコひとかけ","ナッツ","おにぎり","フルーツ","スープ","甘酒","サラダ","紅茶"];
-const WORDS = ["ゆっくりでいい","一歩ずつ","笑顔でいこう","深呼吸","整える","あせらない","まず一つ","自分にやさしく","丁寧に","今日は軽やかに"];
-
-const MSG = {
-  normal: [
-    "今日は整えるほど運気が上がる日。机の上を少しだけ整えるニャ。",
-    "大きく動くより、ひとつ決めるのが吉。小さな前進が光るニャ。",
-    "気になることはメモすると運が味方するニャ。",
-    "やさしい言葉が幸運を呼ぶ日。ひとこと丁寧に伝えるニャ。",
-    "今日は肩の力を抜くと、いい流れに乗れるニャ。"
-  ],
-  love: [
-    "今日は自然体がいちばん魅力的。無理しない笑顔が吉ニャ。",
-    "恋愛運は会話に宿る日。短いメッセージでも心が届くニャ。",
-    "やさしい一言が距離を縮める日。素直さが強いニャ。"
-  ],
-  work: [
-    "今日は段取りが勝負。最初の5分で整理すると仕事運アップニャ。",
-    "小さく区切ると集中できる日。ひとつずつ片づけるニャ。",
-    "相談運あり。迷ったら早めに聞くと流れがよくなるニャ。"
-  ],
-  money: [
-    "今日は衝動買いより見直しが吉。財布を整えるニャ。",
-    "小さな節約が気持ちよく積み上がる日。無理せずコツコツニャ。",
-    "お金の流れを一度見るだけでも運気アップ。確認が大事ニャ。"
-  ],
-  health: [
-    "今日は温めると元気が戻る日。首や足元をふんわり守るニャ。",
-    "深呼吸と水分補給が味方する日。少しずつ整えるニャ。",
-    "がんばりすぎ注意。休憩も実力のうちニャ。"
-  ]
-};
-
-function starsFromRng(rng){
-  const v = rng();
-  return clamp(Math.floor(2 + v * 4), 2, 5);
-}
-function renderStars(n){
-  return "★".repeat(n) + "☆".repeat(5-n);
-}
-function formatToday(){
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2,"0");
-  const da = String(d.getDate()).padStart(2,"0");
-  return { key:`${y}-${m}-${da}`, label:`${y}/${m}/${da}` };
-}
-
-function buildFortune(birthdayISO, mode){
-  const bd = new Date(birthdayISO + "T00:00:00");
-  const month = bd.getMonth() + 1;
-  const day = bd.getDate();
-  const sign = getSign(month, day);
-
-  const today = formatToday();
-  const seedStr = `${today.key}|${birthdayISO}|${mode}|coco-v2`;
-  const seed = xmur3(seedStr)();
-  const rng = mulberry32(seed);
-
-  const stars = starsFromRng(rng);
-  const message = pick(rng, MSG[mode] || MSG.normal);
-  const luckyItem = pick(rng, ITEMS);
-  const luckyFood = pick(rng, FOODS);
-  const keyword = pick(rng, WORDS);
-
-  const heads = [
-    "今日はいい感じ！",
-    "整えると強い日",
-    "ゆっくり勝つ日",
-    "直感が光る日",
-    "小さく進む日"
-  ];
-
-  return {
-    headline: pick(rng, heads),
-    stars: renderStars(stars),
-    message,
-    todayLabel: today.label,
-    signText: `${sign.emoji} ${sign.name}`,
-    personality: sign.personality,
-    luckyColor: sign.color,
-    luckyDay: sign.day,
-    luckyItem,
-    luckyFood,
-    keyword,
-    shareText:
-`🐱ココちゃん星占い
-日付：${today.label}
-星座：${sign.name}
-性格：${sign.personality}
-運勢：${renderStars(stars)}
-一言：${message}
-ラッキーカラー：${sign.color}
-ラッキー曜日：${sign.day}
-ラッキーアイテム：${luckyItem}
-ラッキーフード：${luckyFood}
-合言葉：${keyword}`
-  };
-}
-
 const elHeadline = document.getElementById("headline");
 const elStars = document.getElementById("stars");
 const elSign = document.getElementById("sign");
 const elDate = document.getElementById("dateLabel");
 const elMessage = document.getElementById("message");
-const elPersonality = document.getElementById("personality");
 const elLuckyColor = document.getElementById("luckyColor");
-const elLuckyDay = document.getElementById("luckyDay");
 const elLuckyItem = document.getElementById("luckyItem");
 const elLuckyFood = document.getElementById("luckyFood");
 const elKeyword = document.getElementById("keyword");
 
 let lastShareText = "";
 
+function todayLabel(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2,"0");
+  const da = String(d.getDate()).padStart(2,"0");
+  return `${y}/${m}/${da}`;
+}
+
 function showError(msg){
-  elHeadline.textContent = "入力が必要ニャ";
+  elHeadline.textContent = "読み込みエラー";
   elStars.textContent = "☆☆☆☆☆";
   elSign.textContent = "星座：-";
   elDate.textContent = "日付：-";
   elMessage.innerHTML = msg;
-  elPersonality.textContent = "-";
   elLuckyColor.textContent = "-";
-  elLuckyDay.textContent = "-";
   elLuckyItem.textContent = "-";
   elLuckyFood.textContent = "-";
   elKeyword.textContent = "-";
   lastShareText = "";
 }
 
-document.getElementById("btnFortune").addEventListener("click", () => {
+document.getElementById("btnFortune").addEventListener("click", async () => {
   const b = document.getElementById("birthday").value;
-  const mode = document.getElementById("mode").value;
 
   if(!b){
     showError("誕生日を入れてから、もう一度押してニャ🐾");
     return;
   }
 
-  const f = buildFortune(b, mode);
-  elHeadline.textContent = f.headline;
-  elStars.textContent = f.stars;
-  elSign.textContent = `星座：${f.signText}`;
-  elDate.textContent = `日付：${f.todayLabel}`;
-  elMessage.textContent = f.message;
-  elPersonality.textContent = f.personality;
-  elLuckyColor.textContent = f.luckyColor;
-  elLuckyDay.textContent = f.luckyDay;
-  elLuckyItem.textContent = f.luckyItem;
-  elLuckyFood.textContent = f.luckyFood;
-  elKeyword.textContent = f.keyword;
-  lastShareText = f.shareText;
+  const bd = new Date(b + "T00:00:00");
+  const sign = getSign(bd.getMonth() + 1, bd.getDate());
+
+  try {
+    const res = await fetch("./horoscope-data.json");
+    if (!res.ok) throw new Error("JSON読み込み失敗");
+
+    const data = await res.json();
+    const result = data[sign.name];
+
+    if (!result) throw new Error("星座データが見つかりません");
+
+    elHeadline.textContent = result.headline;
+    elStars.textContent = result.stars;
+    elSign.textContent = `星座：${sign.emoji} ${sign.name}`;
+    elDate.textContent = `日付：${todayLabel()}`;
+    elMessage.textContent = result.message;
+    elLuckyColor.textContent = result.luckyColor;
+    elLuckyItem.textContent = result.luckyItem;
+    elLuckyFood.textContent = result.luckyFood;
+    elKeyword.textContent = result.keyword;
+
+    lastShareText =
+`🐱ココちゃんAPI版占い
+日付：${todayLabel()}
+星座：${sign.name}
+運勢：${result.stars}
+一言：${result.message}
+ラッキーカラー：${result.luckyColor}
+ラッキーアイテム：${result.luckyItem}
+ラッキーフード：${result.luckyFood}
+合言葉：${result.keyword}`;
+  } catch (e) {
+    showError("占いデータの取得に失敗しました。JSONファイル名や保存状態を確認してニャ。");
+  }
 });
 
 document.getElementById("btnCopy").addEventListener("click", async () => {
@@ -479,15 +114,7 @@ document.getElementById("btnCopy").addEventListener("click", async () => {
     await navigator.clipboard.writeText(lastShareText);
     alert("コピーしました📋");
   }catch(e){
-    const ta = document.createElement("textarea");
-    ta.value = lastShareText;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    alert("コピーしました📋");
+    alert("コピーに失敗しました");
   }
 });
 </script>
-</body>
-</html>
