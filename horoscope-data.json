@@ -1,0 +1,110 @@
+{
+  "牡羊座": {
+    "headline": "今日は勢いが味方する日",
+    "stars": "★★★★☆",
+    "message": "考えすぎるより、まず一歩が吉。ココは背中を押してるニャ。",
+    "luckyColor": "赤",
+    "luckyItem": "お気に入りのペン",
+    "luckyFood": "トマトスープ",
+    "keyword": "まず動く"
+  },
+  "牡牛座": {
+    "headline": "今日は安定感が光る日",
+    "stars": "★★★★☆",
+    "message": "自分のペースを守るほど運が整うニャ。急がなくて大丈夫。",
+    "luckyColor": "緑",
+    "luckyItem": "ハンドクリーム",
+    "luckyFood": "ヨーグルト",
+    "keyword": "落ち着いて"
+  },
+  "双子座": {
+    "headline": "今日は会話運アップ",
+    "stars": "★★★☆☆",
+    "message": "短いやり取りの中にヒントあり。気になる言葉を拾うニャ。",
+    "luckyColor": "黄色",
+    "luckyItem": "イヤホン",
+    "luckyFood": "フルーツ",
+    "keyword": "ひらめき"
+  },
+  "蟹座": {
+    "headline": "今日は安心感が鍵",
+    "stars": "★★★★☆",
+    "message": "落ち着ける場所を整えると、心も運気もなめらかになるニャ。",
+    "luckyColor": "白",
+    "luckyItem": "猫の写真",
+    "luckyFood": "お味噌汁",
+    "keyword": "ほっとする"
+  },
+  "獅子座": {
+    "headline": "今日は主役力が高まる日",
+    "stars": "★★★★★",
+    "message": "堂々と進んでOK。やさしさを添えるとさらに魅力アップニャ。",
+    "luckyColor": "金",
+    "luckyItem": "小さな鏡",
+    "luckyFood": "オムレツ",
+    "keyword": "堂々と"
+  },
+  "乙女座": {
+    "headline": "今日は整える力が最強",
+    "stars": "★★★★☆",
+    "message": "細やかさが武器。ひとつ整えるだけで流れが変わるニャ。",
+    "luckyColor": "ベージュ",
+    "luckyItem": "ノート",
+    "luckyFood": "サラダ",
+    "keyword": "丁寧に"
+  },
+  "天秤座": {
+    "headline": "今日は美しさが味方する日",
+    "stars": "★★★★☆",
+    "message": "迷ったら、心地よいほう・美しいほうを選ぶといいニャ。",
+    "luckyColor": "ピンク",
+    "luckyItem": "リップバーム",
+    "luckyFood": "カフェラテ",
+    "keyword": "バランス"
+  },
+  "蠍座": {
+    "headline": "今日は深く集中できる日",
+    "stars": "★★★★☆",
+    "message": "ひとつを掘るほど実りがあるニャ。静かな集中が吉。",
+    "luckyColor": "深紅",
+    "luckyItem": "お守り",
+    "luckyFood": "チョコひとかけ",
+    "keyword": "深く"
+  },
+  "射手座": {
+    "headline": "今日は視野が広がる日",
+    "stars": "★★★★☆",
+    "message": "少し遠くを見ると運が広がるニャ。大きく考えてOK。",
+    "luckyColor": "紫",
+    "luckyItem": "折りたたみ傘",
+    "luckyFood": "おにぎり",
+    "keyword": "自由に"
+  },
+  "山羊座": {
+    "headline": "今日は積み上げが効く日",
+    "stars": "★★★☆☆",
+    "message": "小さな達成を大事にすると、あとで大きく効いてくるニャ。",
+    "luckyColor": "黒",
+    "luckyItem": "手帳",
+    "luckyFood": "スープ",
+    "keyword": "着実に"
+  },
+  "水瓶座": {
+    "headline": "今日は発想が光る日",
+    "stars": "★★★★☆",
+    "message": "普通にこだわらないほど運が開くニャ。ひらめきを信じて。",
+    "luckyColor": "青",
+    "luckyItem": "イヤホン",
+    "luckyFood": "ナッツ",
+    "keyword": "ユニーク"
+  },
+  "魚座": {
+    "headline": "今日はやさしさが鍵",
+    "stars": "★★★★☆",
+    "message": "感受性が高い日。無理せず、やさしい空気を選ぶニャ。",
+    "luckyColor": "水色",
+    "luckyItem": "温かい靴下",
+    "luckyFood": "甘酒",
+    "keyword": "やわらかく"
+  }
+}
