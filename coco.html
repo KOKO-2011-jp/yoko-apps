@@ -1,120 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ココちゃん星占い</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+
+<body>
+
+<h1>🐱ココちゃん星占い</h1>
+
+<p>誕生日を入力してね</p>
+
+<input type="date" id="birthday">
+
+<button onclick="fortune()">占う</button>
+
+<h2 id="result"></h2>
+
 <script>
-function getSign(month, day){
-  const SIGNS = [
-    { name:"牡羊座", start:[3,21], end:[4,19], emoji:"♈" },
-    { name:"牡牛座", start:[4,20], end:[5,20], emoji:"♉" },
-    { name:"双子座", start:[5,21], end:[6,21], emoji:"♊" },
-    { name:"蟹座",   start:[6,22], end:[7,22], emoji:"♋" },
-    { name:"獅子座", start:[7,23], end:[8,22], emoji:"♌" },
-    { name:"乙女座", start:[8,23], end:[9,22], emoji:"♍" },
-    { name:"天秤座", start:[9,23], end:[10,23], emoji:"♎" },
-    { name:"蠍座",   start:[10,24], end:[11,22], emoji:"♏" },
-    { name:"射手座", start:[11,23], end:[12,21], emoji:"♐" },
-    { name:"山羊座", start:[12,22], end:[1,19], emoji:"♑" },
-    { name:"水瓶座", start:[1,20], end:[2,18], emoji:"♒" },
-    { name:"魚座",   start:[2,19], end:[3,20], emoji:"♓" }
-  ];
 
-  for(const s of SIGNS){
-    const [sm, sd] = s.start;
-    const [em, ed] = s.end;
-    if (sm < em || (sm === em && sd <= ed)) {
-      if ((month === sm && day >= sd) || (month === em && day <= ed) || (month > sm && month < em)) return s;
-    } else {
-      if ((month === sm && day >= sd) || (month === em && day <= ed) || (month > sm || month < em)) return s;
-    }
-  }
-  return null;
+function getSign(month,day){
+
+const SIGNS=[
+{name:"牡羊座",start:[3,21],end:[4,19]},
+{name:"牡牛座",start:[4,20],end:[5,20]},
+{name:"双子座",start:[5,21],end:[6,21]},
+{name:"蟹座",start:[6,22],end:[7,22]},
+{name:"獅子座",start:[7,23],end:[8,22]},
+{name:"乙女座",start:[8,23],end:[9,22]},
+{name:"天秤座",start:[9,23],end:[10,23]},
+{name:"蠍座",start:[10,24],end:[11,22]},
+{name:"射手座",start:[11,23],end:[12,21]},
+{name:"山羊座",start:[12,22],end:[1,19]},
+{name:"水瓶座",start:[1,20],end:[2,18]},
+{name:"魚座",start:[2,19],end:[3,20]}
+]
+
+for(const s of SIGNS){
+const [sm,sd]=s.start
+const [em,ed]=s.end
+
+if((month==sm && day>=sd)||(month==em && day<=ed)||(month>sm && month<em)){
+return s.name
 }
 
-const elHeadline = document.getElementById("headline");
-const elStars = document.getElementById("stars");
-const elSign = document.getElementById("sign");
-const elDate = document.getElementById("dateLabel");
-const elMessage = document.getElementById("message");
-const elLuckyColor = document.getElementById("luckyColor");
-const elLuckyItem = document.getElementById("luckyItem");
-const elLuckyFood = document.getElementById("luckyFood");
-const elKeyword = document.getElementById("keyword");
-
-let lastShareText = "";
-
-function todayLabel(){
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2,"0");
-  const da = String(d.getDate()).padStart(2,"0");
-  return `${y}/${m}/${da}`;
 }
 
-function showError(msg){
-  elHeadline.textContent = "読み込みエラー";
-  elStars.textContent = "☆☆☆☆☆";
-  elSign.textContent = "星座：-";
-  elDate.textContent = "日付：-";
-  elMessage.innerHTML = msg;
-  elLuckyColor.textContent = "-";
-  elLuckyItem.textContent = "-";
-  elLuckyFood.textContent = "-";
-  elKeyword.textContent = "-";
-  lastShareText = "";
+return "星座不明"
+
 }
 
-document.getElementById("btnFortune").addEventListener("click", async () => {
-  const b = document.getElementById("birthday").value;
+function fortune(){
 
-  if(!b){
-    showError("誕生日を入れてから、もう一度押してニャ🐾");
-    return;
-  }
+const b=document.getElementById("birthday").value
 
-  const bd = new Date(b + "T00:00:00");
-  const sign = getSign(bd.getMonth() + 1, bd.getDate());
+if(!b){
+alert("誕生日を入れてください")
+return
+}
 
-  try {
-    const res = await fetch("./horoscope-data.json");
-    if (!res.ok) throw new Error("JSON読み込み失敗");
+const d=new Date(b)
 
-    const data = await res.json();
-    const result = data[sign.name];
+const sign=getSign(d.getMonth()+1,d.getDate())
 
-    if (!result) throw new Error("星座データが見つかりません");
+document.getElementById("result").innerText=
 
-    elHeadline.textContent = result.headline;
-    elStars.textContent = result.stars;
-    elSign.textContent = `星座：${sign.emoji} ${sign.name}`;
-    elDate.textContent = `日付：${todayLabel()}`;
-    elMessage.textContent = result.message;
-    elLuckyColor.textContent = result.luckyColor;
-    elLuckyItem.textContent = result.luckyItem;
-    elLuckyFood.textContent = result.luckyFood;
-    elKeyword.textContent = result.keyword;
+"あなたの星座は "+sign+" です🐱"
 
-    lastShareText =
-`🐱ココちゃんAPI版占い
-日付：${todayLabel()}
-星座：${sign.name}
-運勢：${result.stars}
-一言：${result.message}
-ラッキーカラー：${result.luckyColor}
-ラッキーアイテム：${result.luckyItem}
-ラッキーフード：${result.luckyFood}
-合言葉：${result.keyword}`;
-  } catch (e) {
-    showError("占いデータの取得に失敗しました。JSONファイル名や保存状態を確認してニャ。");
-  }
-});
+}
 
-document.getElementById("btnCopy").addEventListener("click", async () => {
-  if(!lastShareText){
-    alert("先に占ってからコピーしてね🐱");
-    return;
-  }
-  try{
-    await navigator.clipboard.writeText(lastShareText);
-    alert("コピーしました📋");
-  }catch(e){
-    alert("コピーに失敗しました");
-  }
-});
 </script>
+
+</body>
+</html>
