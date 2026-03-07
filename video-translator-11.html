@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>EigoMirror</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600&family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,700;1,300&display=swap');
+  :root {
+    --bg:#0d0d0f; --surface:#16161a; --surface2:#1e1e24; --border:#2a2a35;
+    --accent:#e8c97d; --accent2:#7db8e8; --text:#e8e8f0; --muted:#7a7a8c;
+    --en-color:#e8c97d; --ja-color:#a8d8b0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Mono',monospace}
+
+  .app{display:flex;flex-direction:column;height:100dvh}
+
+  /* HEADER */
+  .header{display:flex;align-items:center;justify-content:space-between;padding:.4rem .8rem;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+  .logo{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;color:var(--accent);letter-spacing:-.02em}
+  .logo span{color:var(--accent2);font-style:italic}
+  .header-right{display:flex;align-items:center;gap:.5rem}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+  .status-dot.active{background:var(--ja-color);box-shadow:0 0 6px var(--ja-color);animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  #sentenceCount{font-size:.62rem;color:var(--muted)}
+
+  /* VIDEO */
+  .video-section{flex-shrink:0;background:#000;position:relative;width:100%;aspect-ratio:16/9;max-height:38vh}
+  .upload-prompt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;cursor:pointer;border:2px dashed var(--border);transition:border-color .2s}
+  .upload-prompt:active{border-color:var(--accent)}
+  .upload-icon{font-size:2rem;opacity:.3}
+  .upload-prompt h2{font-family:'Fraunces',serif;font-size:.95rem;font-weight:300;color:var(--muted)}
+  .upload-prompt p{font-size:.62rem;color:var(--muted);opacity:.5;text-align:center}
+  #videoEl{width:100%;height:100%;object-fit:contain;display:none}
+  .subtitle-overlay{position:absolute;bottom:6%;left:50%;transform:translateX(-50%);width:94%;text-align:center;pointer-events:none;display:none;flex-direction:column;align-items:center;gap:3px}
+  .subtitle-overlay.visible{display:flex}
+  .sub-en{font-family:'Fraunces',serif;font-size:clamp(.75rem,3vw,1rem);font-weight:300;color:var(--en-color);background:rgba(0,0,0,.6);padding:.2rem .6rem;border-radius:3px}
+  .sub-ja{font-family:'Shippori Mincho',serif;font-size:clamp(.7rem,2.8vw,.95rem);color:var(--ja-color);background:rgba(0,0,0,.6);padding:.15rem .6rem;border-radius:3px}
+
+  /* CONTROLS */
+  .controls{flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:.4rem .6rem;display:flex;flex-direction:column;gap:.4rem}
+  .progress-bar{width:100%;height:5px;background:var(--border);border-radius:3px;cursor:pointer;position:relative;touch-action:none}
+  .progress-fill{height:100%;background:var(--accent);border-radius:3px;width:0%;pointer-events:none}
+  .ctrl-row{display:flex;align-items:center;gap:.3rem;flex-wrap:nowrap}
+  .btn{background:none;border:1px solid var(--border);color:var(--text);padding:.36rem .5rem;font-family:'DM Mono',monospace;font-size:.68rem;cursor:pointer;border-radius:4px;white-space:nowrap;touch-action:manipulation}
+  .btn:active{border-color:var(--accent);color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600;padding:.36rem .75rem}
+  .btn.primary:active{background:#f0d88a}
+  .time-display{font-size:.6rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+  .speed-select{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:.65rem;padding:.3rem .25rem;border-radius:4px}
+  .video-status{font-size:.6rem;color:var(--muted);display:flex;align-items:center;gap:.4rem}
+  .video-status.ok{color:var(--ja-color)}.video-status.err{color:#e87d7d}.video-status.loading{color:var(--accent)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{display:inline-block;width:8px;height:8px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+
+  /* SCRIPT SECTION */
+  .script-section{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  .tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)}
+  .tab{flex:1;text-align:center;padding:.5rem .4rem;font-size:.63rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab-content{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
+  .tab-content.active{display:flex}
+  textarea{flex:1;background:var(--bg);color:var(--text);border:none;padding:.75rem;font-family:'DM Mono',monospace;font-size:.78rem;line-height:1.7;resize:none;outline:none;min-height:0}
+  textarea::placeholder{color:var(--muted);opacity:.45}
+  .action-bar{padding:.5rem .75rem;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:.45rem;align-items:center;flex-shrink:0}
+  #processStatus{font-size:.62rem;color:var(--muted);margin-left:auto}
+  .play-mode{padding:.42rem .75rem;background:rgba(232,201,125,.04);border-bottom:1px solid var(--border);font-size:.63rem;color:var(--muted);display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+  .play-mode label{display:flex;align-items:center;gap:.3rem;cursor:pointer}
+  .play-mode input[type=checkbox]{accent-color:var(--accent)}
+  #currentSentenceInfo{margin-left:auto;font-size:.6rem}
+  .sentences-list{flex:1;overflow-y:auto;padding:.4rem;min-height:0;-webkit-overflow-scrolling:touch}
+  .sentence-item{padding:.58rem .65rem;border-radius:6px;margin-bottom:.28rem;cursor:pointer;border:1px solid transparent;transition:background .15s,border-color .15s;position:relative}
+  .sentence-item:active{background:var(--surface2)}
+  .sentence-item.current{background:rgba(232,201,125,.08);border-color:rgba(232,201,125,.3)}
+  .sentence-item.translating .ja-text{opacity:.35;font-style:italic}
+  .en-text{font-family:'Fraunces',serif;font-size:.86rem;font-weight:300;color:var(--en-color);line-height:1.5;margin-bottom:.22rem}
+  .ja-text{font-family:'Shippori Mincho',serif;font-size:.8rem;color:var(--ja-color);line-height:1.55}
+  .sentence-num{position:absolute;top:.38rem;right:.45rem;font-size:.52rem;color:var(--muted);opacity:.3}
+  .translate-progress{font-size:.58rem;color:var(--muted);padding:.22rem .75rem;text-align:right;flex-shrink:0}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%) translateY(14px);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:.72rem;padding:.5rem 1rem;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .22s,transform .22s;z-index:999;white-space:nowrap}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast.success{border-color:var(--ja-color)}.toast.error{border-color:#e87d7d;color:#e87d7d}.toast.info{border-color:var(--accent2)}
+
+  #fileInput{display:none}
+  ::-webkit-scrollbar{width:3px}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="logo">Eigo<span>Mirror</span></div>
+    <div class="header-right">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="sentenceCount"></span>
+    </div>
+  </div>
+
+  <div class="video-section" id="videoWrap">
+    <div class="upload-prompt" id="uploadPrompt" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">▶</div>
+      <h2>動画を開く</h2>
+      <p>タップしてファイルを選択<br>MP4 / WebM / MOV</p>
+    </div>
+    <video id="videoEl" preload="metadata" playsinline></video>
+    <div class="subtitle-overlay" id="subtitleOverlay">
+      <div class="sub-en" id="subEn"></div>
+      <div class="sub-ja" id="subJa"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="ctrl-row">
+      <button class="btn primary" id="playBtn" onclick="togglePlay()">▶ 再生</button>
+      <button class="btn" onclick="skip(-5)">◀ 5s</button>
+      <button class="btn" onclick="skip(5)">5s ▶</button>
+      <button class="btn" onclick="prevSentence()">← 前</button>
+      <button class="btn" onclick="nextSentence()">次 →</button>
+      <select class="speed-select" onchange="setSpeed(this.value)">
+        <option value="0.5">0.5x</option>
+        <option value="0.75">0.75x</option>
+        <option value="1" selected>1.0x</option>
+        <option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option>
+      </select>
+      <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
+    </div>
+    <div class="video-status" id="videoStatus">動画を読み込んでください</div>
+  </div>
+
+  <div class="script-section">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('input')">テキスト入力</div>
+      <div class="tab" onclick="switchTab('script')">翻訳スクリプト</div>
+    </div>
+    <div class="tab-content active" id="tab-input">
+      <textarea id="scriptInput" placeholder="英語スクリプトを貼り付け&#10;&#10;例:&#10;Hello everyone. Welcome to this lesson.&#10;Today we will learn about machine learning.&#10;&#10;文章ごとに改行か、まとめて貼り付けてもOK。"></textarea>
+      <div class="action-bar">
+        <button class="btn primary" onclick="processScript()">翻訳開始 →</button>
+        <button class="btn" onclick="clearScript()">クリア</button>
+        <span id="processStatus"></span>
+      </div>
+    </div>
+    <div class="tab-content" id="tab-script">
+      <div class="play-mode">
+        <label><input type="checkbox" id="autoAdvance">動画と自動同期</label>
+        <span id="currentSentenceInfo">—</span>
+      </div>
+      <div class="sentences-list" id="sentencesList"></div>
+      <div class="translate-progress" id="translateProgress"></div>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+<input type="file" id="fileInput" accept="video/*" onchange="loadVideo(event)">
+
+<script>
+const video=document.getElementById('videoEl'),uploadPrompt=document.getElementById('uploadPrompt'),
+  progressFill=document.getElementById('progressFill'),timeDisplay=document.getElementById('timeDisplay'),
+  subtitleOverlay=document.getElementById('subtitleOverlay'),subEn=document.getElementById('subEn'),
+  subJa=document.getElementById('subJa'),sentencesList=document.getElementById('sentencesList'),
+  statusDot=document.getElementById('statusDot');
+let sentences=[],currentIdx=-1,sentenceDuration=5,translatedCount=0;
+
+function loadVideo(e){loadVideoFile(e.target.files[0])}
+function loadVideoFile(file){
+  if(!file)return;
+  if(!file.type.startsWith('video/')&&!file.name.match(/\.(mp4|webm|mov|avi|mkv|m4v)$/i)){
+    showToast('⚠ 動画ファイルを選択してください','error');return;
+  }
+  setVideoStatus('loading','読み込み中… '+file.name);
+  const reader=new FileReader();
+  reader.onprogress=e=>{if(e.lengthComputable)setVideoStatus('loading','読み込み中… '+Math.round(e.loaded/e.total*100)+'%')};
+  reader.onload=e=>{
+    const blob=new Blob([e.target.result],{type:file.type||'video/mp4'});
+    video.src=URL.createObjectURL(blob);
+    video.style.display='block';uploadPrompt.style.display='none';video.load();
+  };
+  reader.onerror=()=>{showToast('✗ 読み込み失敗','error');setVideoStatus('err','✗ 読み込みエラー')};
+  reader.readAsArrayBuffer(file);
+}
+const videoWrap=document.getElementById('videoWrap');
+videoWrap.addEventListener('dragover',e=>e.preventDefault());
+videoWrap.addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)loadVideoFile(f)});
+
+video.addEventListener('timeupdate',()=>{
+  if(!video.duration)return;
+  progressFill.style.width=(video.currentTime/video.duration*100)+'%';
+  timeDisplay.textContent=formatTime(video.currentTime)+' / '+formatTime(video.duration);
+  syncSubtitle();
+});
+video.addEventListener('play',()=>{document.getElementById('playBtn').textContent='⏸ 停止'});
+video.addEventListener('pause',()=>{document.getElementById('playBtn').textContent='▶ 再生'});
+video.addEventListener('loadeddata',()=>{
+  setVideoStatus('ok','✓ 読み込み完了　'+formatTime(video.duration));
+  showToast('✓ 動画を読み込みました（'+formatTime(video.duration)+'）','success');
+  if(sentences.length)sentenceDuration=video.duration/sentences.length;
+});
+video.addEventListener('error',()=>{
+  const c={1:'中断',2:'ネットワークエラー',3:'デコードエラー',4:'非対応フォーマット'};
+  const msg=video.error?(c[video.error.code]||'不明なエラー'):'不明なエラー';
+  setVideoStatus('err','✗ '+msg);showToast('✗ '+msg,'error');
+  uploadPrompt.style.display='flex';video.style.display='none';
+});
+video.addEventListener('waiting',()=>setVideoStatus('loading','⏳ バッファリング中…'));
+video.addEventListener('canplay',()=>setVideoStatus('ok','✓ 再生準備完了'+(video.duration?'　'+formatTime(video.duration):'')));
+
+const progressBar=document.getElementById('progressBar');
+function seekTo(e){
+  if(!video.duration)return;
+  const rect=progressBar.getBoundingClientRect();
+  const x=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
+  video.currentTime=Math.max(0,Math.min(1,x/rect.width))*video.duration;
+}
+progressBar.addEventListener('click',seekTo);
+progressBar.addEventListener('touchstart',e=>{e.preventDefault();seekTo(e)},{passive:false});
+progressBar.addEventListener('touchmove',e=>{e.preventDefault();seekTo(e)},{passive:false});
+
+function togglePlay(){video.paused?video.play():video.pause()}
+function skip(s){video.currentTime=Math.max(0,Math.min(video.duration||0,video.currentTime+s))}
+function setSpeed(v){video.playbackRate=parseFloat(v)}
+
+function syncSubtitle(){
+  if(!sentences.length||!document.getElementById('autoAdvance').checked)return;
+  const idx=Math.min(Math.floor(video.currentTime/sentenceDuration),sentences.length-1);
+  if(idx!==currentIdx&&idx>=0)setCurrentSentence(idx);
+}
+function setCurrentSentence(idx){
+  currentIdx=idx;const s=sentences[idx];if(!s)return;
+  subEn.textContent=s.en;subJa.textContent=s.ja||'翻訳中...';
+  subtitleOverlay.classList.add('visible');
+  document.querySelectorAll('.sentence-item').forEach((el,i)=>el.classList.toggle('current',i===idx));
+  // 手動スクロールのため自動スクロールなし
+  document.getElementById('currentSentenceInfo').textContent=`${idx+1} / ${sentences.length}`;
+}
+function prevSentence(){if(currentIdx>0){video.currentTime=(currentIdx-1)*sentenceDuration;setCurrentSentence(currentIdx-1)}}
+function nextSentence(){if(currentIdx<sentences.length-1){video.currentTime=(currentIdx+1)*sentenceDuration;setCurrentSentence(currentIdx+1)}}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&name==='input')||(i===1&&name==='script')));
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function splitIntoSentences(text){
+  return text.replace(/\r\n/g,'\n').replace(/\r/g,'\n')
+    .split(/(?<=[.!?])\s+|(?<=\n)\n+/)
+    .map(s=>s.trim()).filter(s=>s.length>2);
+}
+async function processScript(){
+  const text=document.getElementById('scriptInput').value.trim();if(!text)return;
+  const parts=splitIntoSentences(text);
+  if(!parts.length){document.getElementById('processStatus').textContent='文章が見つかりません';return}
+  sentences=parts.map(en=>({en,ja:''}));translatedCount=0;
+  sentenceDuration=video.duration?video.duration/sentences.length:5;
+  renderSentences();switchTab('script');
+  document.getElementById('sentenceCount').textContent=sentences.length+'文';
+  statusDot.classList.add('active');document.getElementById('processStatus').textContent='';
+  await translateAll();
+}
+function renderSentences(){
+  sentencesList.innerHTML='';
+  sentences.forEach((s,i)=>{
+    const div=document.createElement('div');
+    div.className='sentence-item'+(s.ja?'':' translating');div.dataset.idx=i;
+    div.innerHTML=`<div class="en-text">${escHtml(s.en)}</div><div class="ja-text">${s.ja?escHtml(s.ja):'翻訳中…'}</div><div class="sentence-num">#${i+1}</div>`;
+    div.addEventListener('click',()=>{if(video.readyState>=1)video.currentTime=i*sentenceDuration;setCurrentSentence(i)});
+    sentencesList.appendChild(div);
+  });
+}
+function updateSentenceItem(idx){
+  const el=document.querySelector(`.sentence-item[data-idx="${idx}"]`);if(!el)return;
+  el.classList.remove('translating');el.querySelector('.ja-text').textContent=sentences[idx].ja;
+}
+async function translateAll(){
+  for(let i=0;i<sentences.length;i+=3){
+    await Promise.all(sentences.slice(i,i+3).map((s,j)=>translateOne(i+j)));
+    document.getElementById('translateProgress').textContent=`翻訳中… ${translatedCount} / ${sentences.length}`;
+  }
+  statusDot.classList.remove('active');
+  document.getElementById('translateProgress').textContent=`✓ 全${sentences.length}文の翻訳完了`;
+}
+async function translateOne(idx){
+  const s=sentences[idx];
+  try{
+    const res=await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(s.en)}&langpair=en|ja`);
+    const data=await res.json();
+    s.ja=data.responseStatus===200?data.responseData.translatedText:'（翻訳失敗）';
+  }catch(e){s.ja='（翻訳エラー）'}
+  translatedCount++;updateSentenceItem(idx);if(idx===currentIdx)subJa.textContent=s.ja;
+}
+function clearScript(){document.getElementById('scriptInput').value='';document.getElementById('processStatus').textContent=''}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function formatTime(s){const m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+String(sec).padStart(2,'0')}
+
+let toastTimer=null;
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type+' show';
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+function setVideoStatus(state,msg){
+  const el=document.getElementById('videoStatus');el.className='video-status '+state;
+  el.innerHTML=state==='loading'?'<span class="spinner"></span>'+msg:msg;
+}
+</script>
+</body>
+</html>
