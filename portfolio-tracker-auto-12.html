@@ -221,10 +221,18 @@ async function fetchETFPrices() {
     const assocCode = FUND_CODES[a.ticker.toUpperCase()];
     if (!assocCode) continue;
     try {
-      // 三菱UFJアセットマネジメント ファンド情報API
+      // 三菱UFJアセットマネジメント ファンド情報API（直接fetchを優先）
       const url = `https://developer.am.mufg.jp/fund_information_latest/association_fund_cd/${assocCode}`;
-      const res = await fetchWithFallback(url);
-      const data = await res.json();
+      let data;
+      try {
+        // まず直接fetch（CORSヘッダーあり）
+        const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+        data = await res.json();
+      } catch(e) {
+        // 失敗したらプロキシ経由
+        const res = await fetchWithFallback(url);
+        data = await res.json();
+      }
       const fund = data?.datasets?.[0];
       if (fund && fund.nav) {
         const nav = parseFloat(fund.nav);           // 基準価額（1万口あたり）
