@@ -221,29 +221,42 @@ function mkEl(tag,attrs){
 
 /* ══════════════════════════════════
    LARGE STAFF  (quiz)
-   viewBox 0 0 340 155
-   bottom line (G2=slot0) at y=115, gap=12/slot
+   Staff reference: bottom line (G2=slot0) at y=90, gap=12/slot
+   viewBox is computed dynamically so notes never clip
 ══════════════════════════════════ */
-const QB=115,QG=12,QNX=230,QSL=72,QSR=318;
+const QB=90,QG=12,QNX=230,QSL=72,QSR=318,QW=340;
 function qY(s){return QB-s*QG;}
 
 function drawStaff(svg,note){
   svg.innerHTML='';
 
-  // white background
-  svg.appendChild(mkEl('rect',{x:0,y:0,width:340,height:155,fill:'#ffffff'}));
+  const slot=note.slot;
+  const ny=qY(slot);
+  const up=isUp(slot);
+  const stemTip=ny+(up?-52:52);
 
-  // 5 staff lines — black, like real sheet music
+  // Compute viewBox to always contain everything
+  const topStaff=qY(8);  // top staff line (slot 8 = A3)
+  const botStaff=qY(0);  // bottom staff line (slot 0 = G2)
+  const clefBot=QB+22;   // bottom of bass clef glyph
+  const contentTop =Math.min(topStaff, ny, stemTip)-14;
+  const contentBot =Math.max(botStaff, ny, stemTip, clefBot)+14;
+  const vbH=contentBot-contentTop;
+
+  svg.setAttribute('viewBox',`0 ${contentTop} ${QW} ${vbH}`);
+
+  // white background
+  svg.appendChild(mkEl('rect',{x:0,y:contentTop,width:QW,height:vbH,fill:'#ffffff'}));
+
+  // 5 staff lines
   for(let i=0;i<5;i++){
     const y=QB-i*2*QG;
     svg.appendChild(mkEl('line',{x1:QSL,y1:y,x2:QSR,y2:y,stroke:'#1a1a1a','stroke-width':'1.3'}));
   }
 
-  // Bass clef — black
-  const ct=mkEl('text',{x:'4',y:String(QB+8),fill:'#1a1a1a','font-size':'76','font-family':'serif'});
+  // Bass clef
+  const ct=mkEl('text',{x:'4',y:String(QB+10),fill:'#1a1a1a','font-size':'76','font-family':'serif'});
   ct.textContent='𝄢'; svg.appendChild(ct);
-
-  const slot=note.slot, ny=qY(slot);
 
   // ledger lines below
   for(let s=-2;s>=slot;s-=2)
@@ -252,15 +265,14 @@ function drawStaff(svg,note){
   for(let s=10;s<=slot;s+=2)
     svg.appendChild(mkEl('line',{x1:QNX-16,y1:qY(s),x2:QNX+16,y2:qY(s),stroke:'#1a1a1a','stroke-width':'1.3'}));
 
-  // note head — solid black ellipse, tilted
+  // note head
   svg.appendChild(mkEl('ellipse',{cx:QNX,cy:ny,rx:'11',ry:'8',fill:'#1a1a1a',transform:`rotate(-18,${QNX},${ny})`}));
 
   // stem
-  const up=isUp(slot);
   const sx=QNX+(up?11:-11);
   svg.appendChild(mkEl('line',{
     x1:sx,y1:ny+(up?-8:8),
-    x2:sx,y2:ny+(up?-52:52),
+    x2:sx,y2:stemTip,
     stroke:'#1a1a1a','stroke-width':'1.8'
   }));
 }
@@ -356,11 +368,34 @@ function startQuiz(){
   showScreen('quizScreen');loadQuestion();
 }
 
+
+/* ── hint generator ── */
+function getHint(note) {
+  const slot = note.slot;
+  // Lines are at even slots: 0(G2),2(B2),4(D3),6(F3),8(A3)
+  // Spaces are at odd slots: 1(A2),3(C3),5(E3),7(G3),9(B3)
+  // Ledger below: slot -2(E2),-4(C2)  above: 10(C4),12(E4)...
+  const lineNames = {0:'第1線（一番下の線）',2:'第2線',4:'第3線（真ん中の線）',6:'第4線',8:'第5線（一番上の線）'};
+  const spaceNames = {1:'第1間（一番下の間）',3:'第2間',5:'第3間',7:'第4間',9:'第5間（一番上の間）'};
+
+  if (slot === -4) return '📌 第1線の下、加線2本目の線上（ミドルC）';
+  if (slot === -3) return '📌 第1線の下、加線2本目と1本目の間';
+  if (slot === -2) return '📌 第1線の下、加線1本目の線上';
+  if (slot === -1) return '📌 第1線の下、加線1本目と第1線の間';
+  if (slot === 10) return '📌 第5線の上、加線1本目の線上（ミドルC）';
+  if (slot === 11) return '📌 第5線の上、加線1本目と2本目の間';
+  if (slot === 12) return '📌 第5線の上、加線2本目の線上';
+  if (slot === 13) return '📌 第5線の上、加線2本目と3本目の間';
+  if (slot === 14) return '📌 第5線の上、加線3本目の線上';
+
+  if (slot % 2 === 0) return '🎵 ' + lineNames[slot] + 'の上';
+  else                return '🎵 ' + spaceNames[slot];
+}
+
 function loadQuestion(){
   answered=false;currentNote=quizPool[currentIdx];
   drawStaff(document.getElementById('staffSvg'),currentNote);
-  document.getElementById('staffHint').textContent=
-    currentNote.slot%2===0?'🎵 線の上の音符':'🎵 線と線の間の音符';
+  document.getElementById('staffHint').textContent = getHint(currentNote);
   const fb=document.getElementById('feedbackBar');
   fb.textContent='';fb.className='feedback-bar';
   document.getElementById('btnNext').classList.remove('visible');
