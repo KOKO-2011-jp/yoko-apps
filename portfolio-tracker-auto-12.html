@@ -230,9 +230,15 @@ async function fetchETFPrices() {
         const nav = parseFloat(fund.nav);           // 基準価額（1万口あたり）
         const prevNav = nav - parseFloat(fund.cmp_prev_day || 0);
         prevPrices[a.id] = a.currentPrice;
-        // 評価額 = 現在評価額 × (新NAV / 前日NAV)
-        const changeRate = prevNav > 0 ? nav / prevNav : 1;
-        a.currentPrice = Math.round(a.currentPrice * changeRate);
+        // 口数が保存されている場合は直接計算、なければ変化率で更新
+        if (a.units) {
+          // 口数×基準価額÷10000で評価額を直接計算
+          a.currentPrice = Math.round(a.units * nav / 10000);
+        } else {
+          // 変化率で更新
+          const changeRate = prevNav > 0 ? nav / prevNav : 1;
+          a.currentPrice = Math.round(a.currentPrice * changeRate);
+        }
         a.dailyChange = prevNav > 0 ? +((nav - prevNav) / prevNav * 100).toFixed(2) : 0;
         a.autoPrice = true;
         a.autoPriceFailed = false;
@@ -796,16 +802,18 @@ async function importXLSX(file) {
       const isAuto = AUTO_TYPES.includes(type);
 
       let finalQty = qty, finalBuy = buyPrice, finalCurrent = currentPrice;
+      let finalUnits = null;
       if (type === 'etf') {
         // 投資信託: 1万口単位のため ÷10000 して円換算
         // qty=1, buyPrice=取得金額合計(円), currentPrice=評価額(円)
+        finalUnits = qty; // 口数を保存
         finalQty = 1;
         finalBuy = Math.round(qty * buyPrice / 10000);
         finalCurrent = Math.round(qty * currentPrice / 10000);
       }
 
       imported.push({ id:idBase++, name, ticker, type, currency,
-        qty: finalQty, buyPrice: finalBuy,
+        qty: finalQty, buyPrice: finalBuy, units: finalUnits,
         currentPrice: isAuto?0:finalCurrent, dailyChange:0, autoPrice:false });
     }
   }
