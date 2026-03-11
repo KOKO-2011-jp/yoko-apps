@@ -225,7 +225,7 @@ async function fetchETFPrices() {
       const url = `https://developer.am.mufg.jp/fund_information_latest/association_fund_cd/${assocCode}`;
       const res = await fetchWithFallback(url);
       const data = await res.json();
-      const fund = data?.detaets?.[0]?.value?.[0];
+      const fund = data?.datasets?.[0];
       if (fund && fund.nav) {
         const nav = parseFloat(fund.nav);           // 基準価額（1万口あたり）
         const prevNav = nav - parseFloat(fund.cmp_prev_day || 0);
