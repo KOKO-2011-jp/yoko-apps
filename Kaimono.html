@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>お買い物リスト</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #ff6b6b;
+    --orange: #ff8e53;
+    --yellow: #feca57;
+    --blue: #48dbfb;
+    --bg: #f8fafc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); min-height: 100vh; max-width: 480px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53, #feca57);
+    padding: 20px 20px 18px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-sub { font-size: 10px; color: rgba(255,255,255,0.85); font-weight: 900; letter-spacing: 3px; font-family: 'Nunito', sans-serif; }
+  .header-title { font-size: 26px; font-weight: 900; color: #fff; margin-top: 2px; font-family: 'Nunito', sans-serif; }
+  .header-meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .badge { background: rgba(255,255,255,0.25); color: #fff; border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 700; display: none; }
+  .share-btn { background: rgba(255,255,255,0.9); color: var(--red); border: none; border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 700; cursor: pointer; display: none; font-family: 'Noto Sans JP', sans-serif; }
+
+  /* Tabs */
+  .tabs { display: flex; background: #fff; border-bottom: 2px solid #f1f5f9; position: sticky; top: 88px; z-index: 99; }
+  .tab { flex: 1; padding: 13px; text-align: center; font-weight: 700; font-size: 14px; color: #94a3b8; border: none; background: none; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; }
+  .tab.active { color: var(--red); border-bottom-color: var(--red); }
+
+  /* Content */
+  .content { padding: 16px; padding-bottom: 40px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Add button */
+  .add-btn { width: 100%; padding: 14px; border: 2.5px dashed #fcb69f; border-radius: 20px; background: #fff9f5; color: var(--orange); font-weight: 700; font-size: 15px; cursor: pointer; margin-bottom: 16px; font-family: 'Noto Sans JP', sans-serif; transition: all 0.2s; }
+  .add-btn:active { transform: scale(0.98); }
+
+  /* Add form */
+  .add-form { background: #fff5f5; border: 2px solid #fecaca; border-radius: 20px; padding: 16px; margin-bottom: 16px; display: none; }
+  .add-form.show { display: block; animation: slideDown 0.2s ease; }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .form-title { font-size: 14px; font-weight: 700; color: var(--red); margin-bottom: 12px; }
+  .form-input { width: 100%; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; font-size: 15px; outline: none; margin-bottom: 10px; font-family: 'Noto Sans JP', sans-serif; transition: border-color 0.2s; }
+  .form-input:focus { border-color: #fca5a5; }
+  .form-select { width: 100%; border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; font-size: 14px; outline: none; background: #fff; font-family: 'Noto Sans JP', sans-serif; margin-bottom: 10px; }
+  .qty-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .qty-label { font-size: 14px; font-weight: 700; color: #334155; }
+  .qty-ctrl { display: flex; align-items: center; background: #f8fafc; border-radius: 12px; padding: 4px; gap: 4px; }
+  .qty-btn { width: 36px; height: 36px; border: none; background: none; font-size: 20px; color: #64748b; cursor: pointer; border-radius: 8px; font-weight: 600; }
+  .qty-btn:active { background: #e2e8f0; }
+  .qty-num { font-size: 18px; font-weight: 900; min-width: 32px; text-align: center; color: #1e293b; }
+  .form-btns { display: flex; gap: 8px; }
+  .cancel-btn { flex: 1; padding: 11px; border-radius: 14px; border: 2px solid #e2e8f0; background: #fff; color: #94a3b8; font-weight: 700; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; }
+  .confirm-btn { flex: 2; padding: 11px; border-radius: 14px; border: none; background: linear-gradient(135deg, var(--red), var(--orange)); color: #fff; font-weight: 800; font-size: 15px; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; }
+  .confirm-btn:active { transform: scale(0.98); }
+
+  /* Empty */
+  .empty { text-align: center; padding: 60px 0; color: #cbd5e1; }
+  .empty-emoji { font-size: 48px; margin-bottom: 10px; }
+  .empty-text { font-size: 15px; font-weight: 700; }
+  .empty-sub { font-size: 12px; margin-top: 4px; }
+
+  /* Category label */
+  .cat-label { font-size: 11px; font-weight: 900; letter-spacing: 1px; margin-bottom: 6px; margin-top: 4px; }
+
+  /* Item row */
+  .item-row { display: flex; align-items: center; gap: 10px; border: 2px solid; border-radius: 16px; padding: 11px 12px; margin-bottom: 7px; transition: all 0.2s; }
+  .item-row.checked { opacity: 0.6; background: #f8fafc !important; border-color: #e2e8f0 !important; }
+  .checkbox { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; font-size: 14px; color: #fff; }
+  .item-name { flex: 1; font-size: 15px; font-weight: 700; color: #1e293b; transition: all 0.2s; }
+  .item-row.checked .item-name { text-decoration: line-through; color: #94a3b8; }
+  .qty-badge { border-radius: 10px; padding: 2px 10px; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .delete-btn { background: none; border: none; color: #cbd5e1; font-size: 15px; cursor: pointer; padding: 4px; flex-shrink: 0; }
+
+  /* Save template btn */
+  .save-tpl-btn { width: 100%; padding: 13px; border-radius: 20px; border: none; background: #e0f2fe; color: #1e40af; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 8px; font-family: 'Noto Sans JP', sans-serif; }
+
+  /* Template card */
+  .tpl-card { border-radius: 20px; padding: 18px; margin-bottom: 14px; animation: slideDown 0.2s ease; }
+  .tpl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .tpl-name { font-size: 18px; font-weight: 900; color: #1e293b; }
+  .tpl-del-btn { background: rgba(255,255,255,0.5); border: none; border-radius: 8px; padding: 4px 10px; font-size: 12px; color: #64748b; font-weight: 700; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; }
+  .tpl-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+  .tpl-tag { background: rgba(255,255,255,0.65); border-radius: 8px; padding: 2px 8px; font-size: 12px; font-weight: 700; color: #334155; }
+  .load-btn { width: 100%; padding: 10px; border-radius: 14px; border: none; background: rgba(255,255,255,0.8); font-weight: 700; font-size: 14px; color: #1e293b; cursor: pointer; font-family: 'Noto Sans JP', sans-serif; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+  .modal-overlay.show { display: flex; animation: fadeIn 0.15s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal { background: #fff; border-radius: 24px 24px 0 0; padding: 28px 24px 40px; width: 100%; animation: slideUp 0.2s ease; }
+  @keyframes slideUp { from { transform: translateY(20px); } to { transform: translateY(0); } }
+  .modal-title { font-size: 18px; font-weight: 900; color: #1e293b; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-sub">OSHOPPING</div>
+  <div class="header-title">お買い物リスト 🛍️</div>
+  <div class="header-meta">
+    <div class="badge" id="badge"></div>
+    <button class="share-btn" id="shareBtn" onclick="shareList()">📤 共有</button>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('list')">🛒 リスト</button>
+  <button class="tab" onclick="switchTab('templates')">📋 テンプレ</button>
+</div>
+
+<!-- Content -->
+<div class="content">
+
+  <!-- List Tab -->
+  <div class="tab-panel active" id="tab-list">
+    <div class="add-form" id="addForm">
+      <div class="form-title">＋ 商品を追加</div>
+      <input class="form-input" id="newName" placeholder="商品名を入力..." onkeydown="if(event.key==='Enter')addItem()">
+      <select class="form-select" id="newCategory">
+        <option>野菜・果物</option>
+        <option>肉・魚</option>
+        <option>乳製品</option>
+        <option>パン・穀物</option>
+        <option>飲み物</option>
+        <option>日用品</option>
+        <option selected>その他</option>
+      </select>
+      <div class="qty-row">
+        <span class="qty-label">数量</span>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="changeQty(-1)">−</button>
+          <span class="qty-num" id="qtyNum">1</span>
+          <button class="qty-btn" onclick="changeQty(1)">＋</button>
+        </div>
+      </div>
+      <div class="form-btns">
+        <button class="cancel-btn" onclick="closeForm()">キャンセル</button>
+        <button class="confirm-btn" onclick="addItem()">追加する</button>
+      </div>
+    </div>
+    <button class="add-btn" id="addBtn" onclick="openForm()">＋ 商品を追加する</button>
+    <div id="itemList"></div>
+    <button class="save-tpl-btn" id="saveTplBtn" style="display:none" onclick="openTplModal()">📋 このリストをテンプレとして保存</button>
+  </div>
+
+  <!-- Templates Tab -->
+  <div class="tab-panel" id="tab-templates">
+    <div id="templateList"></div>
+  </div>
+</div>
+
+<!-- Template Save Modal -->
+<div class="modal-overlay" id="tplModal" onclick="if(event.target===this)closeTplModal()">
+  <div class="modal">
+    <div class="modal-title">📋 テンプレートとして保存</div>
+    <div class="modal-sub">テンプレート名をつけてください</div>
+    <input class="form-input" id="tplName" placeholder="例：週末まとめ買い" onkeydown="if(event.key==='Enter')saveTemplate()">
+    <div class="form-btns" style="margin-top:4px">
+      <button class="cancel-btn" onclick="closeTplModal()">キャンセル</button>
+      <button class="confirm-btn" style="background:#a1c4fd;color:#1e40af" onclick="saveTemplate()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CATS = {
+  "野菜・果物": { emoji:"🥦", color:"#16a34a", bg:"#f0fdf4", border:"#86efac" },
+  "肉・魚":     { emoji:"🥩", color:"#dc2626", bg:"#fef2f2", border:"#fca5a5" },
+  "乳製品":     { emoji:"🧀", color:"#d97706", bg:"#fffbeb", border:"#fde68a" },
+  "パン・穀物": { emoji:"🍞", color:"#ea580c", bg:"#fff7ed", border:"#fdba74" },
+  "飲み物":     { emoji:"🧃", color:"#2563eb", bg:"#eff6ff", border:"#93c5fd" },
+  "日用品":     { emoji:"🧴", color:"#7c3aed", bg:"#f5f3ff", border:"#c4b5fd" },
+  "その他":     { emoji:"🛒", color:"#64748b", bg:"#f8fafc", border:"#cbd5e1" },
+};
+const TPL_COLORS = ["#fcb69f","#a1c4fd","#96e6a1","#f5a7c7","#a5d8ff"];
+const SAMPLE_TEMPLATES = [
+  { id:1, name:"週末まとめ買い", color:"#fcb69f", items:[
+    {name:"牛乳",category:"乳製品",qty:2},
+    {name:"食パン",category:"パン・穀物",qty:1},
+    {name:"卵",category:"乳製品",qty:1},
+    {name:"鶏むね肉",category:"肉・魚",qty:2},
+    {name:"トマト",category:"野菜・果物",qty:3},
+  ]},
+  { id:2, name:"朝食セット", color:"#a1c4fd", items:[
+    {name:"ヨーグルト",category:"乳製品",qty:1},
+    {name:"バナナ",category:"野菜・果物",qty:4},
+    {name:"オレンジジュース",category:"飲み物",qty:1},
+  ]},
+];
+
+// Data
+let items = JSON.parse(localStorage.getItem('items') || '[]');
+let templates = JSON.parse(localStorage.getItem('templates') || JSON.stringify(SAMPLE_TEMPLATES));
+let qty = 1;
+let activeTab = 'list';
+
+function save() {
+  localStorage.setItem('items', JSON.stringify(items));
+  localStorage.setItem('templates', JSON.stringify(templates));
+}
+
+// Tab
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='list')||(i===1&&tab==='templates')));
+  document.getElementById('tab-list').classList.toggle('active', tab==='list');
+  document.getElementById('tab-templates').classList.toggle('active', tab==='templates');
+  render();
+}
+
+// Form
+function openForm() {
+  document.getElementById('addForm').classList.add('show');
+  document.getElementById('addBtn').style.display = 'none';
+  document.getElementById('newName').focus();
+  qty = 1;
+  document.getElementById('qtyNum').textContent = 1;
+}
+function closeForm() {
+  document.getElementById('addForm').classList.remove('show');
+  document.getElementById('addBtn').style.display = 'block';
+  document.getElementById('newName').value = '';
+  document.getElementById('newCategory').value = 'その他';
+  qty = 1;
+  document.getElementById('qtyNum').textContent = 1;
+}
+function changeQty(d) {
+  qty = Math.max(1, qty + d);
+  document.getElementById('qtyNum').textContent = qty;
+}
+
+// Items
+function addItem() {
+  const name = document.getElementById('newName').value.trim();
+  if (!name) return;
+  const category = document.getElementById('newCategory').value;
+  items.push({ id: Date.now(), name, category, qty, checked: false });
+  save(); closeForm(); render();
+}
+function toggleItem(id) {
+  const item = items.find(i => i.id === id);
+  if (item) { item.checked = !item.checked; save(); render(); }
+}
+function removeItem(id) {
+  if (confirm('削除しますか？')) { items = items.filter(i => i.id !== id); save(); render(); }
+}
+
+// Templates
+function openTplModal() { document.getElementById('tplModal').classList.add('show'); document.getElementById('tplName').value = ''; setTimeout(()=>document.getElementById('tplName').focus(),100); }
+function closeTplModal() { document.getElementById('tplModal').classList.remove('show'); }
+function saveTemplate() {
+  const name = document.getElementById('tplName').value.trim();
+  if (!name) return;
+  templates.push({ id: Date.now(), name, color: TPL_COLORS[templates.length % TPL_COLORS.length], items: items.map(({name,category,qty})=>({name,category,qty})) });
+  save(); closeTplModal(); render();
+}
+function loadTemplate(id) {
+  const tpl = templates.find(t => t.id === id);
+  if (!tpl) return;
+  tpl.items.forEach(item => items.push({...item, id: Date.now()+Math.random(), checked: false}));
+  save(); switchTab('list');
+}
+function deleteTemplate(id) {
+  if (confirm('このテンプレートを削除しますか？')) { templates = templates.filter(t => t.id !== id); save(); render(); }
+}
+
+// Share
+function shareList() {
+  if (items.length === 0) { alert('リストが空です'); return; }
+  const grouped = {};
+  Object.keys(CATS).forEach(cat => { const ci = items.filter(i=>i.category===cat); if(ci.length) grouped[cat]=ci; });
+  let text = '🛍️ お買い物リスト\n\n';
+  Object.entries(grouped).forEach(([cat,ci]) => {
+    text += CATS[cat].emoji + ' ' + cat + '\n';
+    ci.forEach(item => text += '  ' + (item.checked?'✅':'⬜') + ' ' + item.name + '　×' + item.qty + '\n');
+    text += '\n';
+  });
+  const checked = items.filter(i=>i.checked).length;
+  text += `（${checked}/${items.length} 完了）`;
+  if (navigator.share) { navigator.share({ text }); }
+  else { navigator.clipboard.writeText(text).then(()=>alert('コピーしました！LINEなどに貼り付けてください')); }
+}
+
+// Render
+function render() {
+  const checked = items.filter(i=>i.checked).length;
+  const badge = document.getElementById('badge');
+  const shareBtn = document.getElementById('shareBtn');
+  const saveTplBtn = document.getElementById('saveTplBtn');
+  if (items.length > 0) {
+    badge.style.display = 'block';
+    badge.textContent = checked + ' / ' + items.length + ' 完了 ✨';
+    shareBtn.style.display = 'block';
+    saveTplBtn.style.display = 'block';
+  } else {
+    badge.style.display = 'none';
+    shareBtn.style.display = 'none';
+    saveTplBtn.style.display = 'none';
+  }
+
+  // Items
+  const listEl = document.getElementById('itemList');
+  if (items.length === 0) {
+    listEl.innerHTML = '<div class="empty"><div class="empty-emoji">🛒</div><div class="empty-text">リストが空です</div><div class="empty-sub">商品を追加してみましょう！</div></div>';
+  } else {
+    let html = '';
+    Object.keys(CATS).forEach(cat => {
+      const catItems = items.filter(i => i.category === cat);
+      if (!catItems.length) return;
+      const cfg = CATS[cat];
+      html += `<div class="cat-label" style="color:${cfg.color}">${cfg.emoji} ${cat}</div>`;
+      catItems.forEach(item => {
+        const bg = item.checked ? '#f8fafc' : cfg.bg;
+        const border = item.checked ? '#e2e8f0' : cfg.border;
+        const cbBg = item.checked ? cfg.color : 'transparent';
+        const qBg = item.checked ? '#e2e8f0' : cfg.border;
+        const qColor = item.checked ? '#94a3b8' : cfg.color;
+        html += `
+          <div class="item-row ${item.checked?'checked':''}" style="background:${bg};border-color:${border}">
+            <button class="checkbox" style="border-color:${item.checked?cfg.color:cfg.border};background:${cbBg}" onclick="toggleItem(${item.id})">${item.checked?'✓':''}</button>
+            <span class="item-name">${item.name}</span>
+            <span class="qty-badge" style="background:${qBg};color:${qColor}">×${item.qty}</span>
+            <button class="delete-btn" onclick="removeItem(${item.id})">✕</button>
+          </div>`;
+      });
+    });
+    listEl.innerHTML = html;
+  }
+
+  // Templates
+  const tplEl = document.getElementById('templateList');
+  if (templates.length === 0) {
+    tplEl.innerHTML = '<div class="empty"><div class="empty-emoji">📋</div><div class="empty-text">テンプレートがありません</div></div>';
+  } else {
+    let html = '';
+    templates.forEach(tpl => {
+      html += `
+        <div class="tpl-card" style="background:${tpl.color}">
+          <div class="tpl-header">
+            <span class="tpl-name">${tpl.name}</span>
+            <button class="tpl-del-btn" onclick="deleteTemplate(${tpl.id})">削除</button>
+          </div>
+          <div class="tpl-tags">${tpl.items.map(i=>`<span class="tpl-tag">${i.name}×${i.qty}</span>`).join('')}</div>
+          <button class="load-btn" onclick="loadTemplate(${tpl.id})">📥 このテンプレを読み込む</button>
+        </div>`;
+    });
+    tplEl.innerHTML = html;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
