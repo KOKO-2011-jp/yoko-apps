@@ -178,10 +178,6 @@ td.inc { color: var(--red); } td.dec { color: var(--green); } td.zero { color: v
           <div class="chart-title">カテゴリ別金額（月ごと）</div>
           <div class="chart-wrap"><canvas id="chart-cat"></canvas></div>
         </div>
-        <div class="chart-card">
-          <div class="chart-title">差分（基準月比 ▲赤=増 ▼緑=減）</div>
-          <div class="chart-wrap"><canvas id="chart-diff"></canvas></div>
-        </div>
       </div>
     </div>
 
@@ -194,6 +190,10 @@ td.inc { color: var(--red); } td.dec { color: var(--green); } td.zero { color: v
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap">
         <div class="sec-label" style="margin:0">明細一覧</div>
         <select id="detail-sheet-sel" style="padding:5px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:white;font-family:inherit" onchange="renderDetailTable()"></select>
+        <div style="display:flex;gap:6px;margin-left:auto">
+          <button id="sort-date-btn" onclick="setDetailSort('date')" style="padding:5px 12px;border:2px solid var(--ink);border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer;background:var(--ink);color:white;font-weight:600">日付順</button>
+          <button id="sort-cat-btn" onclick="setDetailSort('cat')" style="padding:5px 12px;border:2px solid var(--border);border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer;background:white;color:var(--ink2);font-weight:600">カテゴリ順</button>
+        </div>
       </div>
       <div class="table-wrap"><table id="detail-table"></table></div>
     </div>
@@ -300,20 +300,56 @@ function parseSheet(idx) {
   for (let i = hRow + 1; i < rows.length; i++) {
     const r = rows[i];
     if (dateCol >= 0 && r[dateCol] !== '' && typeof r[amtCol] === 'number') {
-      details.push({ date: String(r[dateCol]), shop: String(r[shopCol] || ''), cat: String(r[catCol] || 'その他'), amt: r[amtCol] });
-    }
-    if (sumCatCol >= 0 && r[sumCatCol] !== '' && typeof r[sumAmtCol] === 'number') {
-      catSummary[String(r[sumCatCol])] = r[sumAmtCol];
+      const shop = String(r[shopCol] || '');
+      const rawCat = String(r[catCol] || 'その他');
+      const cat = reclassify(shop, rawCat);
+      details.push({ date: String(r[dateCol]), shop, cat, amt: r[amtCol] });
     }
   }
 
-  let catMap = Object.keys(catSummary).length ? catSummary : {};
-  if (!Object.keys(catMap).length) {
-    details.forEach(d => { catMap[d.cat] = (catMap[d.cat] || 0) + d.amt; });
-  }
+  // 常に明細から再集計（カテゴリ再分類を反映するため右側集計は使わない）
+  const catMap = {};
+  details.forEach(d => { catMap[d.cat] = (catMap[d.cat] || 0) + d.amt; });
 
   const total = Object.values(catMap).reduce((a, b) => a + b, 0);
   return { name: label, details, catMap, total };
+}
+
+// カテゴリ再分類ルール
+function reclassify(shop, cat) {
+  const s = shop.toLowerCase();
+
+  // 食費・宅配 → 食費 に統合
+  if (cat === '食費・宅配') return '食費';
+
+  // イオン → 食費・スーパー（イオンと表示）
+  if (s.includes('イオン') || s.includes('aeon')) return 'スーパー・イオン';
+
+  // オーケー → 食費・スーパー（オーケーと表示）
+  if (s.includes('オーケー') || s.includes('ok ') || s.includes('ｵｰｹｰ')) return 'スーパー・オーケー';
+
+  // 飛行機・ホテル → 旅費
+  if (s.includes('ana') || s.includes('jal') || s.includes('航空') || s.includes('エアー') ||
+      s.includes('ホテル') || s.includes('hotel') || s.includes('inn') || s.includes('宿') ||
+      s.includes('旅館') || cat === '旅費') return '旅費';
+
+  // Goタクシー → 交通費・Go（全角・半角・スペースあり/なし対応）
+  if (s.includes('go') && (s.includes('タクシー') || s.includes('taxi') || s.includes('ﾀｸｼｰ'))) return '交通費・Go';
+  if (shop.includes('ＧＯ') || shop.includes('Ｇｏ') || shop.match(/GO.*(タクシー|TAXI|taxi)/i)) return '交通費・Go';
+  if (s.includes('ゴーアプリ') || s.includes('ごーあぷり') || shop.includes('ゴーアプリ')) return '交通費・Go';
+  if (shop.includes('GOアプリ') || shop.includes('Goアプリ') || shop.includes('ＧＯアプリ')) return '交通費・Go';
+
+  // ふるさと納税
+  if (s.includes('フルナビ') || s.includes('ふるなび') || s.includes('ふるさと') || s.includes('さとふる') || s.includes('furunavi')) return 'ふるさと納税';
+
+  // Uber → 交通費・Uber
+  if (s.includes('uber') || shop.includes('ウーバー') || shop.includes('Ｕｂｅｒ')) return '交通費・Uber';
+  if (s.includes('ロッソズ') || s.includes('rossoz') || s.includes('ロッソ銀座') || s.includes('ロツソ') || s.includes('rosso')) return '美容院';
+
+  // kikito → サブスク・通信
+  if (s.includes('kikito')) return 'サブスク・通信';
+
+  return cat;
 }
 
 function runAnalysis() {
@@ -420,25 +456,6 @@ function renderCharts() {
     },
     options: baseOpts
   });
-
-  // Diff vs first
-  if (analysisData.length >= 2) {
-    const base = analysisData[0];
-    charts.diff = new Chart(document.getElementById('chart-diff'), {
-      type: 'bar',
-      data: {
-        labels: allCats,
-        datasets: analysisData.slice(1).map((s, i) => ({
-          label: `${s.displayName} vs ${base.displayName}`,
-          data: allCats.map(c => (s.catMap[c] || 0) - (base.catMap[c] || 0)),
-          backgroundColor: allCats.map(c => ((s.catMap[c] || 0) - (base.catMap[c] || 0)) >= 0 ? '#dc262677' : '#16a34a77'),
-          borderColor: allCats.map(c => ((s.catMap[c] || 0) - (base.catMap[c] || 0)) >= 0 ? '#dc2626' : '#16a34a'),
-          borderWidth: 1.5, borderRadius: 3,
-        }))
-      },
-      options: baseOpts
-    });
-  }
 }
 
 function renderCatTable() {
@@ -446,17 +463,16 @@ function renderCatTable() {
   let html = '<thead><tr><th>カテゴリ</th>';
   analysisData.forEach(s => html += `<th style="text-align:right">${s.displayName}</th>`);
   for (let i = 1; i < analysisData.length; i++)
-    html += `<th style="text-align:right">前月比 (${analysisData[i-1].displayName}−${analysisData[i].displayName})</th>`;
+    html += `<th style="text-align:right">前月比 (${analysisData[i].displayName}→${analysisData[i-1].displayName})</th>`;
   html += '</tr></thead><tbody>';
 
   allCats.forEach(cat => {
     html += `<tr><td>${cat}</td>`;
     analysisData.forEach(s => { const v = s.catMap[cat]; html += `<td class="num">${v !== undefined ? v.toLocaleString()+'円' : '—'}</td>`; });
     for (let i = 1; i < analysisData.length; i++) {
-      // 新しい月(i-1) − 前の月(i)
-      const d = (analysisData[i-1].catMap[cat] || 0) - (analysisData[i].catMap[cat] || 0);
-      const cls = d > 0 ? 'inc' : d < 0 ? 'dec' : 'zero';
-      html += `<td class="num ${cls}">${d > 0 ? '+' : ''}${d.toLocaleString()}円</td>`;
+      const d = (analysisData[i].catMap[cat] || 0) - (analysisData[i-1].catMap[cat] || 0);
+      const cls = d > 0 ? 'dec' : d < 0 ? 'inc' : 'zero';
+      html += `<td class="num ${cls}">${Math.abs(d).toLocaleString()}円</td>`;
     }
     html += '</tr>';
   });
@@ -464,12 +480,25 @@ function renderCatTable() {
   html += `<tr style="font-weight:700;border-top:2px solid var(--border)"><td>合計</td>`;
   analysisData.forEach(s => html += `<td class="num">${s.total.toLocaleString()}円</td>`);
   for (let i = 1; i < analysisData.length; i++) {
-    const d = analysisData[i-1].total - analysisData[i].total;
-    const cls = d > 0 ? 'inc' : d < 0 ? 'dec' : 'zero';
-    html += `<td class="num ${cls}">${d > 0 ? '+' : ''}${d.toLocaleString()}円</td>`;
+    const d = analysisData[i].total - analysisData[i-1].total;
+    const cls = d > 0 ? 'dec' : d < 0 ? 'inc' : 'zero';
+    html += `<td class="num ${cls}">${Math.abs(d).toLocaleString()}円</td>`;
   }
   html += '</tr></tbody>';
   document.getElementById('cat-table').innerHTML = html;
+}
+
+let detailSort = 'date'; // 'date' or 'cat'
+
+function setDetailSort(mode) {
+  detailSort = mode;
+  document.getElementById('sort-date-btn').style.cssText = mode === 'date'
+    ? 'padding:5px 12px;border:2px solid var(--ink);border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer;background:var(--ink);color:white;font-weight:600'
+    : 'padding:5px 12px;border:2px solid var(--border);border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer;background:white;color:var(--ink2);font-weight:600';
+  document.getElementById('sort-cat-btn').style.cssText = mode === 'cat'
+    ? 'padding:5px 12px;border:2px solid var(--ink);border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer;background:var(--ink);color:white;font-weight:600'
+    : 'padding:5px 12px;border:2px solid var(--border);border-radius:4px;font-size:11px;font-family:inherit;cursor:pointer;background:white;color:var(--ink2);font-weight:600';
+  renderDetailTable();
 }
 
 function renderDetailSheetSelect() {
@@ -481,10 +510,47 @@ function renderDetailTable() {
   const name = document.getElementById('detail-sheet-sel').value;
   const sheet = analysisData.find(s => s.name === name);
   if (!sheet) return;
+
+  const rows = [...sheet.details];
+
+  if (detailSort === 'cat') {
+    // カテゴリ順→カテゴリ内は金額降順
+    rows.sort((a, b) => a.cat.localeCompare(b.cat, 'ja') || b.amt - a.amt);
+  }
+  // 日付順はデフォルト（元の順序を維持）
+
   let html = '<thead><tr><th>日付</th><th>店舗名</th><th>カテゴリ</th><th style="text-align:right">金額</th></tr></thead><tbody>';
-  sheet.details.forEach(d => {
-    html += `<tr><td>${d.date}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${d.shop}</td><td>${d.cat}</td><td class="num">${d.amt.toLocaleString()}円</td></tr>`;
-  });
+
+  if (detailSort === 'cat') {
+    // カテゴリごとに区切り線＋小計
+    let currentCat = null;
+    let catTotal = 0;
+    const catRows = [];
+
+    rows.forEach((d, i) => {
+      if (d.cat !== currentCat) {
+        // 前カテゴリの小計を出力
+        if (currentCat !== null) {
+          catRows.push(`<tr style="background:var(--bg2);font-weight:600"><td colspan="3" style="font-size:11px;color:var(--ink2)">${currentCat} 小計</td><td class="num" style="font-size:12px">${catTotal.toLocaleString()}円</td></tr>`);
+        }
+        currentCat = d.cat;
+        catTotal = 0;
+        catRows.push(`<tr style="background:var(--bg)"><td colspan="4" style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);font-family:'Syne',sans-serif;padding:8px 14px">${d.cat}</td></tr>`);
+      }
+      catTotal += d.amt;
+      catRows.push(`<tr><td>${d.date}</td><td style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${d.shop}</td><td style="color:var(--ink3);font-size:12px">${d.cat}</td><td class="num">${d.amt.toLocaleString()}円</td></tr>`);
+    });
+    // 最後のカテゴリ小計
+    if (currentCat !== null) {
+      catRows.push(`<tr style="background:var(--bg2);font-weight:600"><td colspan="3" style="font-size:11px;color:var(--ink2)">${currentCat} 小計</td><td class="num" style="font-size:12px">${catTotal.toLocaleString()}円</td></tr>`);
+    }
+    html += catRows.join('');
+  } else {
+    rows.forEach(d => {
+      html += `<tr><td>${d.date}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${d.shop}</td><td>${d.cat}</td><td class="num">${d.amt.toLocaleString()}円</td></tr>`;
+    });
+  }
+
   html += '</tbody>';
   document.getElementById('detail-table').innerHTML = html;
 }
