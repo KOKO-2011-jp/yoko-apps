@@ -85,6 +85,10 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .toast.success{border-color:var(--ja-color)}.toast.error{border-color:#e87d7d;color:#e87d7d}.toast.info{border-color:var(--accent2)}
 
+  .notta-btn{background:none;color:var(--accent2);border-color:var(--accent2);text-decoration:none;display:inline-flex;align-items:center}
+  .notta-btn:active{background:rgba(125,184,232,.1)}
+  .chatgpt-check{display:block;margin-top:.45rem;padding:.35rem .7rem;background:rgba(125,184,232,.08);border:1px solid rgba(125,184,232,.35);color:var(--accent2);font-family:'DM Mono',monospace;font-size:.68rem;border-radius:4px;text-decoration:none;text-align:center;transition:background .15s}
+  .chatgpt-check:active{background:rgba(125,184,232,.2)}
   #fileInput{display:none}
   ::-webkit-scrollbar{width:3px}
   ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -146,6 +150,8 @@
       <div class="action-bar">
         <button class="btn primary" onclick="processScript()">翻訳開始 →</button>
         <button class="btn" onclick="clearScript()">クリア</button>
+        <a class="btn notta-btn" id="nottaBtn" href="https://www.notta.ai/app" target="_blank">NOTTA ↗</a>
+        <a class="btn notta-btn" href="https://chatgpt.com/ja-JP/translate/" target="_blank">ChatGPT翻訳 ↗</a>
         <span id="processStatus"></span>
       </div>
     </div>
@@ -273,7 +279,11 @@ function renderSentences(){
     const div=document.createElement('div');
     div.className='sentence-item'+(s.ja?'':' translating');div.dataset.idx=i;
     div.innerHTML=`<div class="en-text">${escHtml(s.en)}</div><div class="ja-text">${s.ja?escHtml(s.ja):'翻訳中…'}</div><div class="sentence-num">#${i+1}</div>`;
-    div.addEventListener('click',()=>{if(video.readyState>=1)video.currentTime=i*sentenceDuration;setCurrentSentence(i)});
+    div.addEventListener('click',()=>{
+      if(video.readyState>=1)video.currentTime=i*sentenceDuration;
+      setCurrentSentence(i);
+      toggleChatGPTBtn(div, s.en);
+    });
     sentencesList.appendChild(div);
   });
 }
@@ -300,6 +310,25 @@ async function translateOne(idx){
 }
 function clearScript(){document.getElementById('scriptInput').value='';document.getElementById('processStatus').textContent=''}
 function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function toggleChatGPTBtn(div, enText) {
+  // 他のボタンを閉じる
+  document.querySelectorAll('.chatgpt-check').forEach(el => {
+    if (el.closest('.sentence-item') !== div) el.remove();
+  });
+  // すでに開いていれば閉じる
+  const existing = div.querySelector('.chatgpt-check');
+  if (existing) { existing.remove(); return; }
+  // ChatGPT確認ボタン生成
+  const btn = document.createElement('a');
+  btn.className = 'chatgpt-check';
+  btn.textContent = '💬 ChatGPTで確認';
+  const query = encodeURIComponent('次の英文を自然な日本語に翻訳して：「' + enText + '」');
+  btn.href = 'https://chatgpt.com/?q=' + query;
+  btn.target = '_blank';
+  btn.addEventListener('click', e => e.stopPropagation());
+  div.appendChild(btn);
+}
+
 function formatTime(s){const m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+String(sec).padStart(2,'0')}
 
 let toastTimer=null;
@@ -307,6 +336,29 @@ function showToast(msg,type='info'){
   const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type+' show';
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
 }
+// NOTTAスマートリンク（Androidアプリ優先、なければWeb）
+document.getElementById('nottaBtn').addEventListener('click', function(e) {
+  const ua = navigator.userAgent;
+  if (/Android/i.test(ua)) {
+    e.preventDefault();
+    // android-app:// でNOTTAアプリを直接起動
+    const appUrl = 'android-app://com.langogo.transcribe';
+    const fallback = 'https://play.google.com/store/apps/details?id=com.langogo.transcribe';
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    iframe.src = appUrl;
+    // 500ms後に反応なければPlayストアへ
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+      window.location.href = fallback;
+    }, 1000);
+    // intent:// も試みる
+    window.location.href = 'intent://main#Intent;scheme=notta;package=com.langogo.transcribe;end';
+  }
+  // iOS・PC はそのままWebへ
+});
+
 function setVideoStatus(state,msg){
   const el=document.getElementById('videoStatus');el.className='video-status '+state;
   el.innerHTML=state==='loading'?'<span class="spinner"></span>'+msg:msg;
