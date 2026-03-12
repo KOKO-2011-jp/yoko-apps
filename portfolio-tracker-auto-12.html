@@ -87,13 +87,13 @@ let assets = JSON.parse(localStorage.getItem('pf_assets2') || 'null') || [
   { id:3,  name:'GXUSテック20',                  ticker:'2244', type:'jp',    qty:134,     buyPrice:3154,   currentPrice:3010,   currency:'JPY' },
   { id:4,  name:'iFFANG+',                       ticker:'316A', type:'jp',    qty:172,     buyPrice:1812,   currentPrice:2200,   currency:'JPY' },
   // 【投資信託】口数管理 / 三菱UFJ APIで基準価額自動取得
-  { id:5,  name:'Tracers NASDAQ100ゴールドプラス', ticker:'TGNP',  type:'etf', qty:26296,   buyPrice:19775,  currentPrice:52,     currency:'JPY' },
-  { id:6,  name:'iFreeレバレッジ FANG+',          ticker:'IFFL',  type:'etf', qty:913257,  buyPrice:23827,  currentPrice:2911,   currency:'JPY' },
-  { id:7,  name:'SBI 日本株4.3ブル',              ticker:'SBI43', type:'etf', qty:95831,   buyPrice:32676,  currentPrice:402,    currency:'JPY' },
-  { id:8,  name:'米国大型テクノロジー株式ファンド', ticker:'USTEC', type:'etf', qty:1225734, buyPrice:13959,  currentPrice:2012,   currency:'JPY' },
-  { id:9,  name:'SMT 米国株式モメンタムファンド',  ticker:'SMTUS', type:'etf', qty:39568,   buyPrice:10893,  currentPrice:43,     currency:'JPY' },
-  { id:10, name:'eMAXIS Slim 国内株式（日経平均）',ticker:'EMAXIS',type:'etf', qty:5326,    buyPrice:27413,  currentPrice:14,     currency:'JPY' },
-  { id:11, name:'iFreeNEXT FANG+インデックス',    ticker:'IFANG', type:'etf', qty:326935,  buyPrice:64096,  currentPrice:2618,   currency:'JPY' },
+  { id:5,  name:'Tracers NASDAQ100ゴールドプラス', ticker:'TGNP',  type:'etf', qty:26296,   buyPrice:19775,  currentPrice:52205,   currency:'JPY' },
+  { id:6,  name:'iFreeレバレッジ FANG+',          ticker:'IFFL',  type:'etf', qty:913257,  buyPrice:23827,  currentPrice:2912285, currency:'JPY' },
+  { id:7,  name:'SBI 日本株4.3ブル',              ticker:'SBI43', type:'etf', qty:95831,   buyPrice:32676,  currentPrice:401867,  currency:'JPY' },
+  { id:8,  name:'米国大型テクノロジー株式ファンド', ticker:'USTEC', type:'etf', qty:1225734, buyPrice:13959,  currentPrice:2012655, currency:'JPY' },
+  { id:9,  name:'SMT 米国株式モメンタムファンド',  ticker:'SMTUS', type:'etf', qty:39568,   buyPrice:10893,  currentPrice:43458,   currency:'JPY' },
+  { id:10, name:'eMAXIS Slim 国内株式（日経平均）',ticker:'EMAXIS',type:'etf', qty:5326,    buyPrice:27413,  currentPrice:14199,   currency:'JPY' },
+  { id:11, name:'iFreeNEXT FANG+インデックス',    ticker:'IFANG', type:'etf', qty:326935,  buyPrice:64096,  currentPrice:2619272, currency:'JPY' },
   // 【米国株】
   { id:12, name:'グラナイトS 2倍ロング AMD',      ticker:'AMDL',  type:'us',  qty:51,      buyPrice:15.9,   currentPrice:12.49,  currency:'USD' },
   { id:13, name:'ゴリラ テクノロジー',            ticker:'GRRR',  type:'us',  qty:34,      buyPrice:15.21,  currentPrice:11.35,  currency:'USD' },
@@ -125,6 +125,10 @@ function toJPY(a) {
 }
 
 function toValue(a) {
+  // 投信(etf)はcurrentPrice=評価額合計、buyPrice×qty=取得金額合計
+  if (a.type === 'etf') {
+    return { current: a.currentPrice, cost: a.buyPrice * a.qty, currency: a.currency };
+  }
   return { current: a.currentPrice * a.qty, cost: a.buyPrice * a.qty, currency: a.currency };
 }
 
@@ -252,6 +256,7 @@ async function fetchETFPrices() {
         const nav = parseFloat(fund.nav);           // 基準価額（1万口あたり）
         const prevNav = nav - parseFloat(fund.cmp_prev_day || 0);
         prevPrices[a.id] = a.currentPrice;
+        a.nav = nav; // 基準価額を保持（表示用）
         if (a.qty > 1) {
           // 口数管理の場合: 評価額 = 口数 × 基準価額 / 10000
           a.currentPrice = Math.round(a.qty * nav / 10000);
@@ -405,9 +410,16 @@ function render() {
   const assetRows = assets.map(a=>{
     const {current,cost,currency}=toValue(a), pnl=current-cost, pct=(pnl/cost)*100;
     const pos=pnl>=0, dchg=a.dailyChange||0, dpos=dchg>=0;
-    const priceDisplay = a.currency==='USD'
-      ? `$${Number(a.currentPrice).toLocaleString()}`
-      : `¥${Number(a.currentPrice).toLocaleString()}`;
+    const priceDisplay = a.type === 'etf'
+      ? (a.nav ? `¥${Math.round(a.nav).toLocaleString()}（基準価額）` : `¥${Number(a.currentPrice).toLocaleString()}`)
+      : a.currency === 'USD'
+        ? `$${Number(a.currentPrice).toLocaleString()}`
+        : `¥${Number(a.currentPrice).toLocaleString()}`;
+    const qtyLabel = a.type === 'etf'
+      ? `${Number(a.qty).toLocaleString()}口`
+      : a.type === 'crypto'
+        ? `${a.qty}`
+        : `${a.qty}株`;
     const autoBadge = a.autoPrice
       ? `<span style="font-size:9px;color:#4ade80;background:#0f2a1a;border:1px solid #1a4a2a;border-radius:4px;padding:1px 5px;margin-left:4px">AUTO</span>`
       : `<span style="font-size:9px;color:#555;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:1px 5px;margin-left:4px">手動</span>`;
@@ -417,7 +429,7 @@ function render() {
       </div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}${autoBadge}</div>
-        <div style="font-size:10px;color:#666;margin-top:2px">${a.qty}${a.type==='crypto'?'':'株'} × ${priceDisplay}</div>
+        <div style="font-size:10px;color:#666;margin-top:2px">${qtyLabel} × ${priceDisplay}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-size:13px;font-weight:700">${formatValue(current,currency)}</div>
