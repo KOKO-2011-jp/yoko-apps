@@ -80,6 +80,9 @@ const FUND_CODES = {
 // 米国株のティッカー（Yahoo Finance経由）
 const US_TICKERS = ['AAPL','NVDA','TSLA','MSFT','GOOGL','AMZN','META','AMD','PLTR','COIN'];
 
+// 旧バージョンのlocalStorageキーを削除してクリーンスタート
+['pf_assets', 'pf_assets2'].forEach(k => localStorage.removeItem(k));
+
 let assets = JSON.parse(localStorage.getItem('pf_assets3') || 'null') || [
   // 【日本株・東証ETF】
   { id:1,  name:'NF日経レバ',                    ticker:'1570', type:'jp',    qty:2,       buyPrice:40490,  currentPrice:51000,  currency:'JPY' },
@@ -114,6 +117,17 @@ let assets = JSON.parse(localStorage.getItem('pf_assets3') || 'null') || [
 let prevPrices = {}; // 前回価格（増減計算用）
 let lastUpdated = null;
 let isUpdating = false;
+
+// 旧形式データ検出（投信がqty:1で保存されている場合はリセット）
+(function validateAssets() {
+  const etfAssets = assets.filter(a => a.type === 'etf');
+  const hasCorruptedETF = etfAssets.some(a => FUND_CODES[a.ticker?.toUpperCase()] && a.qty <= 1);
+  if (hasCorruptedETF) {
+    console.warn('旧形式の投信データを検出。デフォルトデータにリセットします。');
+    localStorage.removeItem('pf_assets3');
+    location.reload();
+  }
+})();
 
 function save() {
   localStorage.setItem('pf_assets3', JSON.stringify(assets));
