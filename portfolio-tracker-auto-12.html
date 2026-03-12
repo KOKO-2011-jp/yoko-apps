@@ -80,7 +80,7 @@ const FUND_CODES = {
 // 米国株のティッカー（Yahoo Finance経由）
 const US_TICKERS = ['AAPL','NVDA','TSLA','MSFT','GOOGL','AMZN','META','AMD','PLTR','COIN'];
 
-let assets = JSON.parse(localStorage.getItem('pf_assets2') || 'null') || [
+let assets = JSON.parse(localStorage.getItem('pf_assets3') || 'null') || [
   // 【日本株・東証ETF】
   { id:1,  name:'NF日経レバ',                    ticker:'1570', type:'jp',    qty:2,       buyPrice:40490,  currentPrice:51000,  currency:'JPY' },
   { id:2,  name:'iFFFANGゴールド',               ticker:'521A', type:'jp',    qty:10,      buyPrice:2063,   currentPrice:2060,   currency:'JPY' },
@@ -116,7 +116,7 @@ let lastUpdated = null;
 let isUpdating = false;
 
 function save() {
-  localStorage.setItem('pf_assets2', JSON.stringify(assets));
+  localStorage.setItem('pf_assets3', JSON.stringify(assets));
 }
 
 function toJPY(a) {
@@ -125,9 +125,12 @@ function toJPY(a) {
 }
 
 function toValue(a) {
-  // 投信(etf)はcurrentPrice=評価額合計、buyPrice×qty=取得金額合計
+  // 投信(etf)はcurrentPrice=評価額合計、取得金額=口数×取得単価÷10000
   if (a.type === 'etf') {
-    return { current: a.currentPrice, cost: a.buyPrice * a.qty, currency: a.currency };
+    const cost = FUND_CODES[a.ticker.toUpperCase()]
+      ? Math.round(a.buyPrice * a.qty / 10000)  // 口数管理: buyPrice=1万口単価
+      : a.buyPrice;                              // 合計金額管理: buyPrice=取得総額
+    return { current: a.currentPrice, cost, currency: a.currency };
   }
   return { current: a.currentPrice * a.qty, cost: a.buyPrice * a.qty, currency: a.currency };
 }
