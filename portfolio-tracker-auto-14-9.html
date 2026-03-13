@@ -81,9 +81,9 @@ const FUND_CODES = {
 const US_TICKERS = ['AAPL','NVDA','TSLA','MSFT','GOOGL','AMZN','META','AMD','PLTR','COIN'];
 
 // 旧バージョンのlocalStorageキーを削除
-['pf_assets', 'pf_assets2', 'pf_assets3'].forEach(k => localStorage.removeItem(k));
+['pf_assets', 'pf_assets2', 'pf_assets3', 'pf_assets4'].forEach(k => localStorage.removeItem(k));
 
-let assets = JSON.parse(localStorage.getItem('pf_assets4') || 'null') || [
+let assets = JSON.parse(localStorage.getItem('pf_assets5') || 'null') || [
   // 【日本株・東証ETF】
   { id:1,  name:'NF日経レバ',                     ticker:'1570',  type:'jp',  qty:2,       buyPrice:40490,  currentPrice:51000,   currency:'JPY' },
   { id:2,  name:'iFFFANGゴールド',                ticker:'521A',  type:'jp',  qty:10,      buyPrice:2063,   currentPrice:2060,    currency:'JPY' },
@@ -119,7 +119,7 @@ let lastUpdated = null;
 let isUpdating = false;
 
 function save() {
-  localStorage.setItem('pf_assets4', JSON.stringify(assets));
+  localStorage.setItem('pf_assets5', JSON.stringify(assets));
 }
 
 function toJPY(a) {
