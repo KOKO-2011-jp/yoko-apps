@@ -169,6 +169,15 @@ function formatValue(n, currency) {
   return currency === 'USD' ? formatUSD(n) : formatJPY(n);
 }
 
+function debugETF() {
+  const etfList = assets.filter(a => a.type === 'etf');
+  const info = etfList.map(a => {
+    const code = FUND_CODES[a.ticker?.toUpperCase()];
+    return `${a.name}\n  ticker="${a.ticker}" → 協会コード=${code||'❌未登録'}\n  autoPrice=${a.autoPrice||false}`;
+  }).join('\n\n');
+  alert('【投信デバッグ情報】\n\n' + (info || 'etfタイプの資産なし'));
+}
+
 function toast(msg, color='#4ade80') {
   const el = document.getElementById('toast-container');
   const t = document.createElement('div');
@@ -500,6 +509,7 @@ function render() {
         <button id="update-btn" onclick="updateAllPrices()" style="background:#0f2a1a;color:#4ade80;border:1px solid #1a4a2a;padding:9px 13px;font-weight:700;font-size:12px;border-radius:10px">↻ 価格更新</button>
         <button onclick="openImport()" style="background:#1a1a2e;color:#a78bfa;border:1px solid #2a2a4a;padding:9px 13px;font-weight:700;font-size:13px;border-radius:10px">📂</button>
         <button onclick="openAdd()" style="background:#4f46e5;color:#fff;padding:9px 13px;font-weight:700;font-size:13px;border-radius:10px">+ 追加</button>
+        <button onclick="debugETF()" style="background:#7c2d12;color:#fbbf24;border:1px solid #92400e;padding:9px 13px;font-weight:700;font-size:11px;border-radius:10px">🔍DEBUG</button>
       </div>
     </div>
 
