@@ -863,7 +863,7 @@ async function importXLSX(file) {
 
       imported.push({ id:idBase++, name, ticker, type, currency,
         qty: finalQty, buyPrice: finalBuy,
-        currentPrice: isAuto?0:finalCurrent, dailyChange:0, autoPrice:false });
+        currentPrice: finalCurrent, dailyChange:0, autoPrice:false });
     }
   }
   finalizeImport(imported);
