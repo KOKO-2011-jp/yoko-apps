@@ -66,15 +66,15 @@ const CRYPTO_IDS = {
   DOT:'polkadot', MATIC:'matic-network', LTC:'litecoin', LINK:'chainlink',
 };
 
-// 投資信託の協会コード（三菱UFJアセットマネジメントAPIで取得）
+// 投資信託の協会コード（三菱UFJアセットマネジメントAPIで取得可能なファンドのみ）
+// ※アモーヴァAM運用のTracers NASDAQゴールドプラス(TGNP)はこのAPIに存在しないため手動
 const FUND_CODES = {
-  'TGNP':  '02311251', // Tracers NASDAQ100ゴールドプラス
-  'IFFL':  '04314208', // iFreeレバレッジ FANG+
-  'SBI43': '8931317C', // SBI 日本株4.3ブル
-  'USTEC': '64312243', // 米国大型テクノロジー株式ファンド
-  'SMTUS': '6431225C', // SMT 米国株式モメンタムファンド
-  'EMAXIS':'03311182', // eMAXIS Slim 国内株式(日経平均)
-  'IFANG': '04311181', // iFreeNEXT FANG+インデックス
+  'IFFL':  '04314208', // iFreeレバレッジ FANG+（大和AM）
+  'SBI43': '8931317C', // SBI 日本株4.3ブル（SBI AM）
+  'USTEC': '64312243', // 米国大型テクノロジー株式ファンド（三菱UFAM）
+  'SMTUS': '6431225C', // SMT 米国株式モメンタムファンド（三菱UFAM）
+  'EMAXIS':'03311182', // eMAXIS Slim 国内株式(日経平均)（三菱UFAM）
+  'IFANG': '04311181', // iFreeNEXT FANG+インデックス（大和AM）
 };
 
 // 米国株のティッカー（Yahoo Finance経由）
@@ -276,17 +276,15 @@ async function fetchETFPrices() {
     const assocCode = FUND_CODES[a.ticker.toUpperCase()];
     if (!assocCode) continue;
     try {
+      // 三菱UFJアセットマネジメントAPIは直接アクセス可能（CORS許可済み）
       const url = `https://developer.am.mufg.jp/fund_information_latest/association_fund_cd/${assocCode}`;
-      const res = await fetchWithFallback(url);
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
       const data = await res.json();
-      console.log(`${a.ticker} APIレスポンス:`, JSON.stringify(data).slice(0, 200));
-      const fund = data?.detaets?.[0]?.value?.[0];
+      const fund = data?.datasets?.[0]?.value?.[0];
       if (fund && fund.nav) {
         const nav = parseFloat(fund.nav);
-        // percentage_changeを優先（文字列 → 数値）、なければcmp_prev_dayから計算
         const pct = fund.percentage_change && fund.percentage_change !== '-'
-          ? parseFloat(fund.percentage_change)
-          : null;
+          ? parseFloat(fund.percentage_change) : null;
         const prevNav = nav - parseFloat(fund.cmp_prev_day || 0);
         prevPrices[a.id] = a.currentPrice;
         a.nav = nav;
@@ -299,9 +297,8 @@ async function fetchETFPrices() {
         a.dailyChange = pct !== null ? pct : (prevNav > 0 ? +((nav - prevNav) / prevNav * 100).toFixed(2) : 0);
         a.autoPrice = true;
         a.autoPriceFailed = false;
-        console.log(`${a.ticker} 取得成功: NAV=${nav}, 前日比=${a.dailyChange}%`);
       } else {
-        console.warn(`${a.ticker} fund.navが見つからない:`, data);
+        a.autoPriceFailed = true;
       }
     } catch(e) {
       console.warn(`${a.ticker}の投信価格取得失敗:`, e.message);
