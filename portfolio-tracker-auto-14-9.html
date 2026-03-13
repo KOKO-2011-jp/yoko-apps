@@ -263,14 +263,14 @@ async function fetchETFPrices() {
       const url = `https://developer.am.mufg.jp/fund_information_latest/association_fund_cd/${assocCode}`;
       const res = await fetchWithFallback(url);
       const data = await res.json();
-      const fund = data?.detaets?.[0]?.value?.[0];
+      const fund = data?.datasets?.[0]?.value?.[0];
       if (fund && fund.nav) {
-        const nav = parseFloat(fund.nav);           // 基準価額（1万口あたり）
+        const nav = parseFloat(fund.nav);           // 基準価額（1万口あたり円）
         const prevNav = nav - parseFloat(fund.cmp_prev_day || 0);
         prevPrices[a.id] = a.currentPrice;
-        // 評価額 = 現在評価額 × (新NAV / 前日NAV)
-        const changeRate = prevNav > 0 ? nav / prevNav : 1;
-        a.currentPrice = Math.round(a.currentPrice * changeRate);
+        a.nav = nav;
+        // 評価額 = 口数 × NAV ÷ 10000（口数が正しく保存されている前提）
+        a.currentPrice = Math.round(a.qty * nav / 10000);
         a.dailyChange = prevNav > 0 ? +((nav - prevNav) / prevNav * 100).toFixed(2) : 0;
         a.autoPrice = true;
         a.autoPriceFailed = false;
@@ -319,7 +319,7 @@ async function updateAllPrices(showToast=true) {
   renderUpdateBtn(true);
 
   try {
-    await Promise.all([fetchUsdJpy(), fetchCryptoPrices(), fetchUSStockPrices(), fetchJPStockPrices()]);
+    await Promise.all([fetchUsdJpy(), fetchCryptoPrices(), fetchUSStockPrices(), fetchJPStockPrices(), fetchETFPrices()]);
     lastUpdated = new Date();
     save();
     if (showToast) toast('✓ 価格を更新しました');
@@ -416,19 +416,28 @@ function render() {
   const assetRows = assets.map(a=>{
     const {current,cost,currency}=toValue(a), pnl=current-cost, pct=(pnl/cost)*100;
     const pos=pnl>=0, dchg=a.dailyChange||0, dpos=dchg>=0;
-    const priceDisplay = a.currency==='USD'
-      ? `$${Number(a.currentPrice).toLocaleString()}`
-      : `¥${Number(a.currentPrice).toLocaleString()}`;
+    // 表示用の価格・数量
+    let priceDisplay, qtyDisplay;
+    if (a.type === 'etf') {
+      priceDisplay = a.nav ? `¥${Math.round(a.nav).toLocaleString()}（基準価額）` : `評価額 ¥${Number(a.currentPrice).toLocaleString()}`;
+      qtyDisplay = `${Number(a.qty).toLocaleString()}口`;
+    } else if (a.currency === 'USD') {
+      priceDisplay = `$${Number(a.currentPrice).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+      qtyDisplay = `${a.qty}${a.type==='crypto'?'':'株'}`;
+    } else {
+      priceDisplay = `¥${Number(a.currentPrice).toLocaleString()}`;
+      qtyDisplay = `${a.qty}株`;
+    }
     const autoBadge = a.autoPrice
       ? `<span style="font-size:9px;color:#4ade80;background:#0f2a1a;border:1px solid #1a4a2a;border-radius:4px;padding:1px 5px;margin-left:4px">AUTO</span>`
       : `<span style="font-size:9px;color:#555;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:1px 5px;margin-left:4px">手動</span>`;
     return `<div class="asset-row" style="padding:14px 10px;margin-bottom:6px;display:flex;align-items:center;gap:10px" onclick="openEdit(${a.id})">
       <div style="width:38px;height:38px;border-radius:10px;background:${typeColors[a.type]}22;border:1px solid ${typeColors[a.type]}44;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <span style="font-size:10px;color:${typeColors[a.type]};font-weight:700">${a.ticker.slice(0,3)}</span>
+        <span style="font-size:10px;color:${typeColors[a.type]};font-weight:700">${a.ticker.slice(0,4)}</span>
       </div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}${autoBadge}</div>
-        <div style="font-size:10px;color:#666;margin-top:2px">${a.qty}${a.type==='crypto'?'':'株'} × ${priceDisplay}</div>
+        <div style="font-size:10px;color:#666;margin-top:2px">${qtyDisplay} × ${priceDisplay}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-size:13px;font-weight:700">${formatValue(current,currency)}</div>
@@ -845,11 +854,11 @@ async function importXLSX(file) {
 
       let finalQty = qty, finalBuy = buyPrice, finalCurrent = currentPrice;
       if (type === 'etf') {
-        // 投資信託: 1万口単位のため ÷10000 して円換算
-        // qty=1, buyPrice=取得金額合計(円), currentPrice=評価額(円)
-        finalQty = 1;
-        finalBuy = Math.round(qty * buyPrice / 10000);
-        finalCurrent = Math.round(qty * currentPrice / 10000);
+        // 投資信託: 口数・1万口単価をそのまま保持
+        finalQty = qty;      // 口数そのまま
+        finalBuy = buyPrice; // 1万口単価そのまま
+        // FUND_CODES登録済みならcurrentPrice=0にしてAUTOに任せる
+        finalCurrent = FUND_CODES[ticker?.toUpperCase()] ? 0 : Math.round(qty * currentPrice / 10000);
       }
 
       imported.push({ id:idBase++, name, ticker, type, currency,
