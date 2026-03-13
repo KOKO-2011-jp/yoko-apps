@@ -66,8 +66,7 @@ const CRYPTO_IDS = {
   DOT:'polkadot', MATIC:'matic-network', LTC:'litecoin', LINK:'chainlink',
 };
 
-// 投資信託の協会コード（三菱UFJアセットマネジメントAPIで取得可能なファンドのみ）
-// ※アモーヴァAM運用のTracers NASDAQゴールドプラス(TGNP)はこのAPIに存在しないため手動
+// 投資信託の協会コード（三菱UFJアセットマネジメントAPIで取得）
 const FUND_CODES = {
   'IFFL':  '04314208', // iFreeレバレッジ FANG+（大和AM）
   'SBI43': '8931317C', // SBI 日本株4.3ブル（SBI AM）
@@ -75,60 +74,49 @@ const FUND_CODES = {
   'SMTUS': '6431225C', // SMT 米国株式モメンタムファンド（三菱UFAM）
   'EMAXIS':'03311182', // eMAXIS Slim 国内株式(日経平均)（三菱UFAM）
   'IFANG': '04311181', // iFreeNEXT FANG+インデックス（大和AM）
+  // ※TGNPはアモーヴァAM運用のため三菱UFJ APIに存在しない→手動
 };
 
 // 米国株のティッカー（Yahoo Finance経由）
 const US_TICKERS = ['AAPL','NVDA','TSLA','MSFT','GOOGL','AMZN','META','AMD','PLTR','COIN'];
 
-// 旧バージョンのlocalStorageキーを削除してクリーンスタート
+// 旧バージョンのlocalStorageキーを削除
 ['pf_assets', 'pf_assets2', 'pf_assets3'].forEach(k => localStorage.removeItem(k));
 
 let assets = JSON.parse(localStorage.getItem('pf_assets4') || 'null') || [
   // 【日本株・東証ETF】
-  { id:1,  name:'NF日経レバ',                    ticker:'1570', type:'jp',    qty:2,       buyPrice:40490,  currentPrice:51000,  currency:'JPY' },
-  { id:2,  name:'iFFFANGゴールド',               ticker:'521A', type:'jp',    qty:10,      buyPrice:2063,   currentPrice:2060,   currency:'JPY' },
-  { id:3,  name:'GXUSテック20',                  ticker:'2244', type:'jp',    qty:134,     buyPrice:3154,   currentPrice:3010,   currency:'JPY' },
-  { id:4,  name:'iFFANG+',                       ticker:'316A', type:'jp',    qty:172,     buyPrice:1812,   currentPrice:2200,   currency:'JPY' },
-  // 【投資信託】口数管理 / 三菱UFJ APIで基準価額自動取得
+  { id:1,  name:'NF日経レバ',                     ticker:'1570',  type:'jp',  qty:2,       buyPrice:40490,  currentPrice:51000,   currency:'JPY' },
+  { id:2,  name:'iFFFANGゴールド',                ticker:'521A',  type:'jp',  qty:10,      buyPrice:2063,   currentPrice:2060,    currency:'JPY' },
+  { id:3,  name:'GXUSテック20',                   ticker:'2244',  type:'jp',  qty:134,     buyPrice:3154,   currentPrice:3010,    currency:'JPY' },
+  { id:4,  name:'iFFANG+',                        ticker:'316A',  type:'jp',  qty:172,     buyPrice:1812,   currentPrice:2200,    currency:'JPY' },
+  // 【投資信託】ticker=FUND_CODESキー / qty=口数 / buyPrice=1万口単価 / currentPrice=評価額合計
   { id:5,  name:'Tracers NASDAQ100ゴールドプラス', ticker:'TGNP',  type:'etf', qty:26296,   buyPrice:19775,  currentPrice:52205,   currency:'JPY' },
-  { id:6,  name:'iFreeレバレッジ FANG+',          ticker:'IFFL',  type:'etf', qty:913257,  buyPrice:23827,  currentPrice:2912285, currency:'JPY' },
-  { id:7,  name:'SBI 日本株4.3ブル',              ticker:'SBI43', type:'etf', qty:95831,   buyPrice:32676,  currentPrice:401867,  currency:'JPY' },
-  { id:8,  name:'米国大型テクノロジー株式ファンド', ticker:'USTEC', type:'etf', qty:1225734, buyPrice:13959,  currentPrice:2012655, currency:'JPY' },
-  { id:9,  name:'SMT 米国株式モメンタムファンド',  ticker:'SMTUS', type:'etf', qty:39568,   buyPrice:10893,  currentPrice:43458,   currency:'JPY' },
-  { id:10, name:'eMAXIS Slim 国内株式（日経平均）',ticker:'EMAXIS',type:'etf', qty:5326,    buyPrice:27413,  currentPrice:14199,   currency:'JPY' },
-  { id:11, name:'iFreeNEXT FANG+インデックス',    ticker:'IFANG', type:'etf', qty:326935,  buyPrice:64096,  currentPrice:2619272, currency:'JPY' },
+  { id:6,  name:'iFreeレバレッジ FANG+',           ticker:'IFFL',  type:'etf', qty:913257,  buyPrice:23827,  currentPrice:2912285, currency:'JPY' },
+  { id:7,  name:'SBI 日本株4.3ブル',               ticker:'SBI43', type:'etf', qty:95831,   buyPrice:32676,  currentPrice:401867,  currency:'JPY' },
+  { id:8,  name:'米国大型テクノロジー株式ファンド',  ticker:'USTEC', type:'etf', qty:1225734, buyPrice:13959,  currentPrice:2012655, currency:'JPY' },
+  { id:9,  name:'SMT 米国株式モメンタムファンド',   ticker:'SMTUS', type:'etf', qty:39568,   buyPrice:10893,  currentPrice:43458,   currency:'JPY' },
+  { id:10, name:'eMAXIS Slim 国内株式（日経平均）', ticker:'EMAXIS',type:'etf', qty:5326,    buyPrice:27413,  currentPrice:14199,   currency:'JPY' },
+  { id:11, name:'iFreeNEXT FANG+インデックス',     ticker:'IFANG', type:'etf', qty:326935,  buyPrice:64096,  currentPrice:2619272, currency:'JPY' },
   // 【米国株】
-  { id:12, name:'グラナイトS 2倍ロング AMD',      ticker:'AMDL',  type:'us',  qty:51,      buyPrice:15.9,   currentPrice:12.49,  currency:'USD' },
-  { id:13, name:'ゴリラ テクノロジー',            ticker:'GRRR',  type:'us',  qty:34,      buyPrice:15.21,  currentPrice:11.35,  currency:'USD' },
-  { id:14, name:'マイクロクラウド ホログラム',    ticker:'HOLO',  type:'us',  qty:2,       buyPrice:184.4,  currentPrice:2.19,   currency:'USD' },
-  { id:15, name:'ジェット エーアイ インク',       ticker:'JTAI',  type:'us',  qty:56,      buyPrice:6.13,   currentPrice:0.09,   currency:'USD' },
-  { id:16, name:'TRex 2倍ロング MSTR Daily',     ticker:'MSTU',  type:'us',  qty:7,       buyPrice:151.6,  currentPrice:5.41,   currency:'USD' },
-  { id:17, name:'Direxion NVDA ブル2倍ETF',      ticker:'NVDU',  type:'us',  qty:10,      buyPrice:98.79,  currentPrice:110.6,  currency:'USD' },
-  { id:18, name:'リゲッティ コンピューティング', ticker:'RGTI',  type:'us',  qty:31,      buyPrice:29.34,  currentPrice:16.99,  currency:'USD' },
-  { id:19, name:'グラナイトS 2倍ロング SMCI',    ticker:'SMCL',  type:'us',  qty:142,     buyPrice:18.04,  currentPrice:4.64,   currency:'USD' },
-  { id:20, name:'Direxion 半導体 ブル3倍ETF',    ticker:'SOXL',  type:'us',  qty:75,      buyPrice:61.27,  currentPrice:54.59,  currency:'USD' },
-  { id:21, name:'テンバスAI インク',              ticker:'TEM',   type:'us',  qty:15,      buyPrice:70.15,  currentPrice:50.9,   currency:'USD' },
-  { id:22, name:'SPDRゴールド ミニシェアーズ',   ticker:'GLDM',  type:'us',  qty:27,      buyPrice:100.87, currentPrice:102.89, currency:'USD' },
-  { id:23, name:'マラ ホールディングス',          ticker:'MARA',  type:'us',  qty:6,       buyPrice:32.3,   currentPrice:8.57,   currency:'USD' },
-  { id:24, name:'スーパー マイクロ コンピューター',ticker:'SMCI', type:'us',  qty:23,      buyPrice:64.2,   currentPrice:31.79,  currency:'USD' },
-  { id:25, name:'バイキング セラビューティクス', ticker:'VKTX',  type:'us',  qty:29,      buyPrice:46.06,  currentPrice:34.66,  currency:'USD' },
+  { id:12, name:'グラナイトS 2倍ロング AMD',       ticker:'AMDL',  type:'us',  qty:51,      buyPrice:15.9,   currentPrice:12.49,   currency:'USD' },
+  { id:13, name:'ゴリラ テクノロジー',             ticker:'GRRR',  type:'us',  qty:34,      buyPrice:15.21,  currentPrice:11.35,   currency:'USD' },
+  { id:14, name:'マイクロクラウド ホログラム',     ticker:'HOLO',  type:'us',  qty:2,       buyPrice:184.4,  currentPrice:2.19,    currency:'USD' },
+  { id:15, name:'ジェット エーアイ インク',        ticker:'JTAI',  type:'us',  qty:56,      buyPrice:6.13,   currentPrice:0.09,    currency:'USD' },
+  { id:16, name:'TRex 2倍ロング MSTR Daily',      ticker:'MSTU',  type:'us',  qty:7,       buyPrice:151.6,  currentPrice:5.41,    currency:'USD' },
+  { id:17, name:'Direxion NVDA ブル2倍ETF',       ticker:'NVDU',  type:'us',  qty:10,      buyPrice:98.79,  currentPrice:110.6,   currency:'USD' },
+  { id:18, name:'リゲッティ コンピューティング',  ticker:'RGTI',  type:'us',  qty:31,      buyPrice:29.34,  currentPrice:16.99,   currency:'USD' },
+  { id:19, name:'グラナイトS 2倍ロング SMCI',     ticker:'SMCL',  type:'us',  qty:142,     buyPrice:18.04,  currentPrice:4.64,    currency:'USD' },
+  { id:20, name:'Direxion 半導体 ブル3倍ETF',     ticker:'SOXL',  type:'us',  qty:75,      buyPrice:61.27,  currentPrice:54.59,   currency:'USD' },
+  { id:21, name:'テンバスAI インク',               ticker:'TEM',   type:'us',  qty:15,      buyPrice:70.15,  currentPrice:50.9,    currency:'USD' },
+  { id:22, name:'SPDRゴールド ミニシェアーズ',    ticker:'GLDM',  type:'us',  qty:27,      buyPrice:100.87, currentPrice:102.89,  currency:'USD' },
+  { id:23, name:'マラ ホールディングス',           ticker:'MARA',  type:'us',  qty:6,       buyPrice:32.3,   currentPrice:8.57,    currency:'USD' },
+  { id:24, name:'スーパー マイクロ コンピューター',ticker:'SMCI',  type:'us',  qty:23,      buyPrice:64.2,   currentPrice:31.79,   currency:'USD' },
+  { id:25, name:'バイキング セラビューティクス',  ticker:'VKTX',  type:'us',  qty:29,      buyPrice:46.06,  currentPrice:34.66,   currency:'USD' },
 ];
 
 let prevPrices = {}; // 前回価格（増減計算用）
 let lastUpdated = null;
 let isUpdating = false;
-
-// 旧形式データ検出（投信がqty:1で保存されている＝旧インポート形式）
-(function validateAssets() {
-  const etfAssets = assets.filter(a => a.type === 'etf');
-  // qty=1かつFUND_CODES登録済み → 旧形式（口数が1口はあり得ない）
-  const hasCorruptedETF = etfAssets.some(a => FUND_CODES[a.ticker?.toUpperCase()] && a.qty === 1);
-  if (hasCorruptedETF) {
-    console.warn('旧形式の投信データを検出。デフォルトデータにリセットします。');
-    localStorage.removeItem('pf_assets4');
-    location.reload();
-  }
-})();
 
 function save() {
   localStorage.setItem('pf_assets4', JSON.stringify(assets));
@@ -136,19 +124,21 @@ function save() {
 
 function toJPY(a) {
   const rate = a.currency === 'USD' ? usdJpy : 1;
-  // 投信(etf)はcurrentPrice=評価額合計なのでqtyを掛けない
   if (a.type === 'etf') {
-    return { current: a.currentPrice * rate, cost: Math.round(a.buyPrice * a.qty / 10000) * rate };
+    // 投信: currentPrice=評価額合計, cost=口数×1万口単価÷10000
+    const cost = FUND_CODES[a.ticker?.toUpperCase()]
+      ? Math.round(a.buyPrice * a.qty / 10000)
+      : a.buyPrice;
+    return { current: a.currentPrice * rate, cost: cost * rate };
   }
   return { current: a.currentPrice * a.qty * rate, cost: a.buyPrice * a.qty * rate };
 }
 
 function toValue(a) {
-  // 投信(etf)はcurrentPrice=評価額合計、取得金額=口数×取得単価÷10000
   if (a.type === 'etf') {
-    const cost = FUND_CODES[a.ticker.toUpperCase()]
-      ? Math.round(a.buyPrice * a.qty / 10000)  // 口数管理: buyPrice=1万口単価
-      : a.buyPrice;                              // 合計金額管理: buyPrice=取得総額
+    const cost = FUND_CODES[a.ticker?.toUpperCase()]
+      ? Math.round(a.buyPrice * a.qty / 10000)
+      : a.buyPrice;
     return { current: a.currentPrice, cost, currency: a.currency };
   }
   return { current: a.currentPrice * a.qty, cost: a.buyPrice * a.qty, currency: a.currency };
@@ -168,15 +158,6 @@ function formatUSD(n) {
 
 function formatValue(n, currency) {
   return currency === 'USD' ? formatUSD(n) : formatJPY(n);
-}
-
-function debugETF() {
-  const etfList = assets.filter(a => a.type === 'etf');
-  const info = etfList.map(a => {
-    const code = FUND_CODES[a.ticker?.toUpperCase()];
-    return `${a.name}\n  ticker="${a.ticker}" → 協会コード=${code||'❌未登録'}\n  autoPrice=${a.autoPrice||false}`;
-  }).join('\n\n');
-  alert('【投信デバッグ情報】\n\n' + (info || 'etfタイプの資産なし'));
 }
 
 function toast(msg, color='#4ade80') {
@@ -228,22 +209,14 @@ async function fetchCryptoPrices() {
 
 // 複数プロキシにフォールバックしながらURLをfetch
 async function fetchWithFallback(url) {
-  // まず直接アクセスを試みる（三菱UFJ APIはCORS許可の可能性あり）
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    if (res.ok) return res;
-  } catch(e) { /* 直接アクセス失敗 → プロキシへ */ }
-
   const proxies = [
     u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
     u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
     u => `https://thingproxy.freeboard.io/fetch/${u}`,
-    u => `https://cors-anywhere.herokuapp.com/${u}`,
   ];
   for (const proxyFn of proxies) {
     try {
-      const res = await fetch(proxyFn(url), { signal: AbortSignal.timeout(8000) });
+      const res = await fetch(proxyFn(url), { signal: AbortSignal.timeout(6000) });
       if (res.ok) return res;
     } catch(e) { /* 次のプロキシへ */ }
   }
@@ -286,29 +259,21 @@ async function fetchETFPrices() {
     const assocCode = FUND_CODES[a.ticker.toUpperCase()];
     if (!assocCode) continue;
     try {
-      // 三菱UFJアセットマネジメントAPIは直接アクセス可能（CORS許可済み）
+      // 三菱UFJアセットマネジメント ファンド情報API
       const url = `https://developer.am.mufg.jp/fund_information_latest/association_fund_cd/${assocCode}`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      const res = await fetchWithFallback(url);
       const data = await res.json();
-      const fund = data?.datasets?.[0]?.value?.[0];
+      const fund = data?.detaets?.[0]?.value?.[0];
       if (fund && fund.nav) {
-        const nav = parseFloat(fund.nav);
-        const pct = fund.percentage_change && fund.percentage_change !== '-'
-          ? parseFloat(fund.percentage_change) : null;
+        const nav = parseFloat(fund.nav);           // 基準価額（1万口あたり）
         const prevNav = nav - parseFloat(fund.cmp_prev_day || 0);
         prevPrices[a.id] = a.currentPrice;
-        a.nav = nav;
-        if (a.qty > 1) {
-          a.currentPrice = Math.round(a.qty * nav / 10000);
-        } else {
-          const changeRate = prevNav > 0 ? nav / prevNav : 1;
-          a.currentPrice = Math.round(a.currentPrice * changeRate);
-        }
-        a.dailyChange = pct !== null ? pct : (prevNav > 0 ? +((nav - prevNav) / prevNav * 100).toFixed(2) : 0);
+        // 評価額 = 現在評価額 × (新NAV / 前日NAV)
+        const changeRate = prevNav > 0 ? nav / prevNav : 1;
+        a.currentPrice = Math.round(a.currentPrice * changeRate);
+        a.dailyChange = prevNav > 0 ? +((nav - prevNav) / prevNav * 100).toFixed(2) : 0;
         a.autoPrice = true;
         a.autoPriceFailed = false;
-      } else {
-        a.autoPriceFailed = true;
       }
     } catch(e) {
       console.warn(`${a.ticker}の投信価格取得失敗:`, e.message);
@@ -354,22 +319,10 @@ async function updateAllPrices(showToast=true) {
   renderUpdateBtn(true);
 
   try {
-    await Promise.all([fetchUsdJpy(), fetchCryptoPrices(), fetchUSStockPrices(), fetchJPStockPrices(), fetchETFPrices()]);
+    await Promise.all([fetchUsdJpy(), fetchCryptoPrices(), fetchUSStockPrices(), fetchJPStockPrices()]);
     lastUpdated = new Date();
     save();
-
-    if (showToast) {
-      const etfAssets = assets.filter(a => a.type === 'etf' && FUND_CODES[a.ticker?.toUpperCase()]);
-      const etfOk = etfAssets.filter(a => a.autoPrice).length;
-      const etfFail = etfAssets.filter(a => a.autoPriceFailed).length;
-      if (etfFail > 0 && etfOk === 0) {
-        toast(`⚠ 投信API接続失敗 (${etfFail}件) 株価は更新済み`, '#f87171');
-      } else if (etfFail > 0) {
-        toast(`✓ 更新完了 / 投信${etfOk}件成功・${etfFail}件失敗`, '#fbbf24');
-      } else {
-        toast(`✓ 全${etfOk > 0 ? '投信含め' : ''}更新しました`);
-      }
-    }
+    if (showToast) toast('✓ 価格を更新しました');
   } catch(e) {
     if (showToast) toast('⚠ 一部の価格取得に失敗しました', '#f87171');
   }
@@ -463,16 +416,9 @@ function render() {
   const assetRows = assets.map(a=>{
     const {current,cost,currency}=toValue(a), pnl=current-cost, pct=(pnl/cost)*100;
     const pos=pnl>=0, dchg=a.dailyChange||0, dpos=dchg>=0;
-    const priceDisplay = a.type === 'etf'
-      ? (a.nav ? `¥${Math.round(a.nav).toLocaleString()}（基準価額）` : `¥${Number(a.currentPrice).toLocaleString()}`)
-      : a.currency === 'USD'
-        ? `$${Number(a.currentPrice).toLocaleString()}`
-        : `¥${Number(a.currentPrice).toLocaleString()}`;
-    const qtyLabel = a.type === 'etf'
-      ? `${Number(a.qty).toLocaleString()}口`
-      : a.type === 'crypto'
-        ? `${a.qty}`
-        : `${a.qty}株`;
+    const priceDisplay = a.currency==='USD'
+      ? `$${Number(a.currentPrice).toLocaleString()}`
+      : `¥${Number(a.currentPrice).toLocaleString()}`;
     const autoBadge = a.autoPrice
       ? `<span style="font-size:9px;color:#4ade80;background:#0f2a1a;border:1px solid #1a4a2a;border-radius:4px;padding:1px 5px;margin-left:4px">AUTO</span>`
       : `<span style="font-size:9px;color:#555;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;padding:1px 5px;margin-left:4px">手動</span>`;
@@ -482,7 +428,7 @@ function render() {
       </div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.name}${autoBadge}</div>
-        <div style="font-size:10px;color:#666;margin-top:2px">${qtyLabel} × ${priceDisplay}</div>
+        <div style="font-size:10px;color:#666;margin-top:2px">${a.qty}${a.type==='crypto'?'':'株'} × ${priceDisplay}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-size:13px;font-weight:700">${formatValue(current,currency)}</div>
@@ -510,7 +456,6 @@ function render() {
         <button id="update-btn" onclick="updateAllPrices()" style="background:#0f2a1a;color:#4ade80;border:1px solid #1a4a2a;padding:9px 13px;font-weight:700;font-size:12px;border-radius:10px">↻ 価格更新</button>
         <button onclick="openImport()" style="background:#1a1a2e;color:#a78bfa;border:1px solid #2a2a4a;padding:9px 13px;font-weight:700;font-size:13px;border-radius:10px">📂</button>
         <button onclick="openAdd()" style="background:#4f46e5;color:#fff;padding:9px 13px;font-weight:700;font-size:13px;border-radius:10px">+ 追加</button>
-        <button onclick="debugETF()" style="background:#7c2d12;color:#fbbf24;border:1px solid #92400e;padding:9px 13px;font-weight:700;font-size:11px;border-radius:10px">🔍DEBUG</button>
       </div>
     </div>
 
@@ -626,11 +571,11 @@ function showModal(d) {
       </div>
 
       <div id="auto-notice" style="background:#0f2a1a;border:1px solid #1a4a2a;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#4ade80;display:${isAuto?'block':'none'}">
-        ✓ 日本株・米国株・仮想通貨・投信は価格を自動取得します。現在価格の入力は不要です。
+        ✓ 日本株・米国株・仮想通貨は価格を自動取得します。現在価格の入力は不要です。
       </div>
 
       <div id="etf-notice" style="background:#1a1a0f;border:1px solid #3a3a1a;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#fbbf24;display:${d.type==='etf'?'block':'none'}">
-        📊 投信は三菱UFJ APIで基準価額を自動更新します。ティッカーが未登録の場合は「取得金額」「評価額」を直接入力してください。
+        📊 投資信託は「取得金額（合計）」と「現在の評価額」を直接入力してください。
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -647,11 +592,42 @@ function showModal(d) {
           <select id="f-type" onchange="onTypeChange(this.value)">
             <option value="jp" ${d.type==='jp'?'selected':''}>日本株（AUTO）</option>
             <option value="us" ${d.type==='us'?'selected':''}>米国株（AUTO）</option>
-            <option value="etf" ${d.type==='etf'?'selected':''}>信託・ETF（AUTO）</option>
+            <option value="etf" ${d.type==='etf'?'selected':''}>信託・ETF（手動）</option>
             <option value="crypto" ${d.type==='crypto'?'selected':''}>仮想通貨（AUTO）</option>
           </select>
         </div>
-        <!-- 通貨（ETF未登録の場合は非表示） -->\n        <div id=\"currency-field\" style=\"${d.type==='etf'&&!FUND_CODES[d.ticker.toUpperCase()]?'display:none':''}\">\n          <label style=\"font-size:11px;color:#666;display:block;margin-bottom:4px\">通貨</label>\n          <select id=\"f-currency\">\n            <option value=\"JPY\" ${d.currency==='JPY'?'selected':''}>JPY (円)</option>\n            <option value=\"USD\" ${d.currency==='USD'?'selected':''}>USD ($)</option>\n          </select>\n        </div>\n\n        <!-- 株式・仮想通貨・投信（登録済み）用フィールド -->\n        <div id=\"qty-field\" style=\"${d.type==='etf'&&!FUND_CODES[d.ticker.toUpperCase()]?'display:none':''}\">\n          <label style=\"font-size:11px;color:#666;display:block;margin-bottom:4px\">保有数量</label>\n          <input id=\"f-qty\" type=\"number\" value=\"${d.qty}\" placeholder=\"100\">\n        </div>\n        <div id=\"buyprice-field\" style=\"${d.type==='etf'&&!FUND_CODES[d.ticker.toUpperCase()]?'display:none':''}\">\n          <label style=\"font-size:11px;color:#666;display:block;margin-bottom:4px\">購入単価</label>\n          <input id=\"f-buy\" type=\"number\" value=\"${d.buyPrice}\" placeholder=\"2800\">\n        </div>\n        <div id=\"price-field\" style=\"display:none\">\n          <label style=\"font-size:11px;color:#666;display:block;margin-bottom:4px\" id=\"price-label\">現在価格 ${isAuto?'（自動取得）':''}</label>\n          <input id=\"f-current\" type=\"number\" value=\"${d.currentPrice}\" placeholder=\"${isAuto?'自動取得':'3120'}\" ${isAuto?'style=\"opacity:0.4\"':''} ${isAuto?'readonly':''}>\n        </div>\n\n        <!-- 投資信託未登録用フィールド -->\n        <div id=\"etf-cost-field\" style=\"${d.type==='etf'&&!FUND_CODES[d.ticker.toUpperCase()]?'':'display:none'}\">\n          <label style=\"font-size:11px;color:#666;display:block;margin-bottom:4px\">取得金額（合計・円）</label>\n          <input id=\"f-etf-cost\" type=\"number\" value=\"${d.type==='etf'?d.buyPrice*d.qty:''}\" placeholder=\"例: 500000\">\n        </div>\n        <div id=\"etf-value-field\" style=\"${d.type==='etf'&&!FUND_CODES[d.ticker.toUpperCase()]?'':'display:none'}\">\n          <label style=\"font-size:11px;color:#666;display:block;margin-bottom:4px\">現在の評価額（円）</label>\n          <input id=\"f-etf-value\" type=\"number\" value=\"${d.type==='etf'?d.currentPrice*d.qty:''}\" placeholder=\"例: 600000\">\n        </div>
+        <!-- 通貨（ETFは非表示） -->
+        <div id="currency-field" style="${d.type==='etf'?'display:none':''}">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">通貨</label>
+          <select id="f-currency">
+            <option value="JPY" ${d.currency==='JPY'?'selected':''}>JPY (円)</option>
+            <option value="USD" ${d.currency==='USD'?'selected':''}>USD ($)</option>
+          </select>
+        </div>
+
+        <!-- 株式・仮想通貨・投信（口数管理）用フィールド -->
+        <div id="qty-field" style="${d.type==='etf' && !FUND_CODES[d.ticker?.toUpperCase()]?'display:none':''}">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">${d.type==='etf'?'保有口数':'保有数量'}</label>
+          <input id="f-qty" type="number" value="${d.qty}" placeholder="${d.type==='etf'?'例: 913257':'100'}">
+        </div>
+        <div id="buyprice-field" style="${d.type==='etf' && !FUND_CODES[d.ticker?.toUpperCase()]?'display:none':''}">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">${d.type==='etf'?'取得単価（1万口）':'購入単価'}</label>
+          <input id="f-buy" type="number" value="${d.buyPrice}" placeholder="${d.type==='etf'?'例: 23827':'2800'}">
+        </div>
+        <div id="price-field" style="${d.type==='etf'?'display:none':''}">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:4px" id="price-label">現在価格 ${isAuto?'（自動取得）':''}</label>
+          <input id="f-current" type="number" value="${d.currentPrice}" placeholder="${isAuto?'自動取得':'3120'}" ${isAuto?'style="opacity:0.4"':''} ${isAuto?'readonly':''}>
+        </div>
+
+        <!-- 投資信託・評価額直接入力（FUND_CODES未登録のみ） -->
+        <div id="etf-cost-field" style="${d.type==='etf' && !FUND_CODES[d.ticker?.toUpperCase()]?'':'display:none'}">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">取得金額合計（円）</label>
+          <input id="f-etf-cost" type="number" value="${d.type==='etf' && !FUND_CODES[d.ticker?.toUpperCase()]?d.buyPrice:''}" placeholder="例: 500000">
+        </div>
+        <div id="etf-value-field" style="${d.type==='etf' && !FUND_CODES[d.ticker?.toUpperCase()]?'':'display:none'}">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">現在の評価額（円）</label>
+          <input id="f-etf-value" type="number" value="${d.type==='etf' && !FUND_CODES[d.ticker?.toUpperCase()]?d.currentPrice:''}" placeholder="例: 600000">
+        </div>
 
         <div id="daily-field" style="${isAuto?'display:none':''}">
           <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">本日変動率 (%)</label>
@@ -669,50 +645,43 @@ function showModal(d) {
 function onTypeChange(val) {
   const isAuto = AUTO_TYPES.includes(val);
   const isETF = val === 'etf';
-
-  // 通貨
-  const cur = document.getElementById('f-currency');
-  if (cur) { cur.value = val === 'us' ? 'USD' : 'JPY'; }
-
-  // 自動取得バッジ（ETFも含む）
-  const notice = document.getElementById('auto-notice');
-  if (notice) notice.style.display = isAuto ? 'block' : 'none';
-
-  // 投資信託補足バッジ
-  const etfNotice = document.getElementById('etf-notice');
-  if (etfNotice) etfNotice.style.display = isETF ? 'block' : 'none';
-
-  // 通常フィールドの表示切替
   const ticker = (document.getElementById('f-ticker')?.value || '').trim().toUpperCase();
-  const hasAutoCode = isETF && !!FUND_CODES[ticker];
-  // ETFで協会コード登録済み → 口数・単価で管理（通常フィールド表示）
-  // ETFで未登録 → 合計金額入力
-  ['qty-field','buyprice-field','currency-field'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = (isETF && !hasAutoCode) ? 'none' : (isETF ? '' : '');
-  });
-  // price-fieldはETFの場合常に非表示（AUTOまたはetf-value-fieldで代替）
-  const priceEl = document.getElementById('price-field');
-  if (priceEl) priceEl.style.display = isETF ? 'none' : '';
+  const hasFundCode = isETF && !!FUND_CODES[ticker];
 
-  // ETF専用フィールド（未登録時のみ）
+  const cur = document.getElementById('f-currency');
+  if (cur) cur.value = val === 'us' ? 'USD' : 'JPY';
+
+  document.getElementById('auto-notice').style.display = isAuto ? 'block' : 'none';
+  document.getElementById('etf-notice').style.display = isETF ? 'block' : 'none';
+
+  // 口数・単価フィールド: ETF未登録は非表示
+  ['qty-field','buyprice-field'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = (isETF && !hasFundCode) ? 'none' : '';
+  });
+  document.getElementById('currency-field').style.display = isETF ? 'none' : '';
+  document.getElementById('price-field').style.display = isETF ? 'none' : '';
+
+  // ETF評価額直接入力: 未登録のみ表示
   ['etf-cost-field','etf-value-field'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.style.display = (isETF && !hasAutoCode) ? '' : 'none';
+    if (el) el.style.display = (isETF && !hasFundCode) ? '' : 'none';
   });
 
-  // 自動取得時の価格フィールド
+  // ラベル更新
+  const qtyLabel = document.querySelector('#qty-field label');
+  const buyLabel = document.querySelector('#buyprice-field label');
+  if (qtyLabel) qtyLabel.textContent = isETF ? '保有口数' : '保有数量';
+  if (buyLabel) buyLabel.textContent = isETF ? '取得単価（1万口）' : '購入単価';
+
   const priceInput = document.getElementById('f-current');
   const priceLabel = document.getElementById('price-label');
   if (priceInput && !isETF) {
     priceInput.readOnly = isAuto;
     priceInput.style.opacity = isAuto ? '0.4' : '1';
   }
-  if (priceLabel && !isETF) {
-    priceLabel.textContent = `現在価格 ${isAuto ? '（自動取得）' : ''}`;
-  }
+  if (priceLabel && !isETF) priceLabel.textContent = `現在価格 ${isAuto?'（自動取得）':''}`;
 
-  // 変動率フィールド
   const dailyField = document.getElementById('daily-field');
   if (dailyField) dailyField.style.display = (isAuto || isETF) ? 'none' : '';
 }
@@ -728,44 +697,40 @@ function submitForm() {
   const type = document.getElementById('f-type').value;
   const isETF = type === 'etf';
   const isAuto = AUTO_TYPES.includes(type);
+  const hasFundCode = isETF && !!FUND_CODES[ticker];
 
   let qty, currency, buyPrice, currentPriceVal, dailyVal;
 
-  if (isETF) {
-    const hasAutoCode = !!FUND_CODES[ticker];
-    if (hasAutoCode) {
-      // 協会コード登録済み: 口数・単価で管理（AUTOで価格更新）
-      qty = parseFloat(document.getElementById('f-qty').value);
-      currency = 'JPY';
-      buyPrice = parseFloat(document.getElementById('f-buy').value);
-      currentPriceVal = 0; // AUTOで更新
-      dailyVal = 0;
-      if (!name || isNaN(qty) || isNaN(buyPrice)) {
-        alert('銘柄名・保有数量・購入単価を入力してください');
-        return;
-      }
-    } else {
-      // 未登録: 評価額直接入力
-      const costVal = parseFloat(document.getElementById('f-etf-cost').value);
-      const valueVal = parseFloat(document.getElementById('f-etf-value').value);
-      if (!name || isNaN(costVal) || isNaN(valueVal)) {
-        alert('銘柄名・取得金額・評価額を入力してください');
-        return;
-      }
-      // qty=1, buyPrice=取得金額, currentPrice=評価額 として保存
-      qty = 1;
-      currency = 'JPY';
-      buyPrice = costVal;
-      currentPriceVal = valueVal;
-      dailyVal = parseFloat(document.getElementById('f-daily')?.value)||0;
+  if (isETF && hasFundCode) {
+    // 口数管理（FUND_CODES登録済み）→ AUTOで基準価額取得
+    qty = parseFloat(document.getElementById('f-qty').value);
+    buyPrice = parseFloat(document.getElementById('f-buy').value);
+    if (!name || isNaN(qty) || isNaN(buyPrice)) {
+      alert('銘柄名・保有口数・取得単価（1万口）を入力してください');
+      return;
     }
+    currency = 'JPY';
+    currentPriceVal = 0; // AUTOで更新
+    dailyVal = 0;
+  } else if (isETF && !hasFundCode) {
+    // 評価額直接入力（未登録投信）
+    const costVal = parseFloat(document.getElementById('f-etf-cost').value);
+    const valueVal = parseFloat(document.getElementById('f-etf-value').value);
+    if (!name || isNaN(costVal) || isNaN(valueVal)) {
+      alert('銘柄名・取得金額・評価額を入力してください');
+      return;
+    }
+    qty = 1;
+    currency = 'JPY';
+    buyPrice = costVal;
+    currentPriceVal = valueVal;
+    dailyVal = parseFloat(document.getElementById('f-daily')?.value)||0;
   } else {
     qty = parseFloat(document.getElementById('f-qty').value);
     currency = document.getElementById('f-currency').value;
     buyPrice = parseFloat(document.getElementById('f-buy').value);
     currentPriceVal = parseFloat(document.getElementById('f-current').value);
     dailyVal = parseFloat(document.getElementById('f-daily')?.value)||0;
-
     if (!name || isNaN(qty) || isNaN(buyPrice)) {
       alert('必要な項目を入力してください');
       return;
@@ -779,22 +744,22 @@ function submitForm() {
   if (editingId) {
     assets = assets.map(a => a.id===editingId
       ? { ...a, name, ticker, type, qty, currency, buyPrice,
-          currentPrice: isAuto ? a.currentPrice : currentPriceVal,
-          dailyChange: isAuto ? a.dailyChange : dailyVal,
-          autoPrice: isAuto ? a.autoPrice : false }
+          currentPrice: (isAuto || hasFundCode) ? a.currentPrice : currentPriceVal,
+          dailyChange: (isAuto || hasFundCode) ? a.dailyChange : dailyVal,
+          autoPrice: (isAuto || hasFundCode) ? a.autoPrice : false }
       : a);
   } else {
     const id = Date.now();
     assets.push({ id, name, ticker, type, qty, currency, buyPrice,
-      currentPrice: isAuto ? 0 : currentPriceVal,
-      dailyChange: isAuto ? 0 : dailyVal,
+      currentPrice: (isAuto || hasFundCode) ? 0 : currentPriceVal,
+      dailyChange: (isAuto || hasFundCode) ? 0 : dailyVal,
       autoPrice: false });
   }
 
   save();
   closeModal();
 
-  if (isAuto) {
+  if (isAuto || hasFundCode) {
     toast('追加しました。「価格更新」で自動取得します ↻');
   }
 
@@ -880,14 +845,11 @@ async function importXLSX(file) {
 
       let finalQty = qty, finalBuy = buyPrice, finalCurrent = currentPrice;
       if (type === 'etf') {
-        // 投資信託: 口数・1万口単価をそのまま保持
-        // FUND_CODESに登録済みならAUTOで基準価額を取得するのでcurrentPrice=0でOK
-        // ticker列に協会コード略称（IFFL等）が入っていれば自動取得対象になる
-        finalQty = qty;         // 口数そのまま
-        finalBuy = buyPrice;    // 1万口単価そのまま
-        finalCurrent = currentPrice > 0 ? Math.round(qty * currentPrice / 10000) : 0;
-        // currentPrice=0にしてAUTOに任せる（FUND_CODES登録済みの場合）
-        if (FUND_CODES[ticker?.toUpperCase()]) finalCurrent = 0;
+        // 投資信託: 1万口単位のため ÷10000 して円換算
+        // qty=1, buyPrice=取得金額合計(円), currentPrice=評価額(円)
+        finalQty = 1;
+        finalBuy = Math.round(qty * buyPrice / 10000);
+        finalCurrent = Math.round(qty * currentPrice / 10000);
       }
 
       imported.push({ id:idBase++, name, ticker, type, currency,
