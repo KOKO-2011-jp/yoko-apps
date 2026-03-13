@@ -81,9 +81,9 @@ const FUND_CODES = {
 const US_TICKERS = ['AAPL','NVDA','TSLA','MSFT','GOOGL','AMZN','META','AMD','PLTR','COIN'];
 
 // 旧バージョンのlocalStorageキーを削除してクリーンスタート
-['pf_assets', 'pf_assets2'].forEach(k => localStorage.removeItem(k));
+['pf_assets', 'pf_assets2', 'pf_assets3'].forEach(k => localStorage.removeItem(k));
 
-let assets = JSON.parse(localStorage.getItem('pf_assets3') || 'null') || [
+let assets = JSON.parse(localStorage.getItem('pf_assets4') || 'null') || [
   // 【日本株・東証ETF】
   { id:1,  name:'NF日経レバ',                    ticker:'1570', type:'jp',    qty:2,       buyPrice:40490,  currentPrice:51000,  currency:'JPY' },
   { id:2,  name:'iFFFANGゴールド',               ticker:'521A', type:'jp',    qty:10,      buyPrice:2063,   currentPrice:2060,   currency:'JPY' },
@@ -118,19 +118,20 @@ let prevPrices = {}; // 前回価格（増減計算用）
 let lastUpdated = null;
 let isUpdating = false;
 
-// 旧形式データ検出（投信がqty:1で保存されている場合はリセット）
+// 旧形式データ検出（投信がqty:1で保存されている＝旧インポート形式）
 (function validateAssets() {
   const etfAssets = assets.filter(a => a.type === 'etf');
-  const hasCorruptedETF = etfAssets.some(a => FUND_CODES[a.ticker?.toUpperCase()] && a.qty <= 1);
+  // qty=1かつFUND_CODES登録済み → 旧形式（口数が1口はあり得ない）
+  const hasCorruptedETF = etfAssets.some(a => FUND_CODES[a.ticker?.toUpperCase()] && a.qty === 1);
   if (hasCorruptedETF) {
     console.warn('旧形式の投信データを検出。デフォルトデータにリセットします。');
-    localStorage.removeItem('pf_assets3');
+    localStorage.removeItem('pf_assets4');
     location.reload();
   }
 })();
 
 function save() {
-  localStorage.setItem('pf_assets3', JSON.stringify(assets));
+  localStorage.setItem('pf_assets4', JSON.stringify(assets));
 }
 
 function toJPY(a) {
@@ -879,11 +880,14 @@ async function importXLSX(file) {
 
       let finalQty = qty, finalBuy = buyPrice, finalCurrent = currentPrice;
       if (type === 'etf') {
-        // 投資信託: 1万口単位のため ÷10000 して円換算
-        // qty=1, buyPrice=取得金額合計(円), currentPrice=評価額(円)
-        finalQty = 1;
-        finalBuy = Math.round(qty * buyPrice / 10000);
-        finalCurrent = Math.round(qty * currentPrice / 10000);
+        // 投資信託: 口数・1万口単価をそのまま保持
+        // FUND_CODESに登録済みならAUTOで基準価額を取得するのでcurrentPrice=0でOK
+        // ticker列に協会コード略称（IFFL等）が入っていれば自動取得対象になる
+        finalQty = qty;         // 口数そのまま
+        finalBuy = buyPrice;    // 1万口単価そのまま
+        finalCurrent = currentPrice > 0 ? Math.round(qty * currentPrice / 10000) : 0;
+        // currentPrice=0にしてAUTOに任せる（FUND_CODES登録済みの場合）
+        if (FUND_CODES[ticker?.toUpperCase()]) finalCurrent = 0;
       }
 
       imported.push({ id:idBase++, name, ticker, type, currency,
