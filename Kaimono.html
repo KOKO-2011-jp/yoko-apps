@@ -2,82 +2,145 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<title>お買い物リスト</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<title>お買い物リスト</title>
 
 <style>
 
-/* ここからデザインCSS */
-
-:root {
-  --red:#ff6b6b;
-  --orange:#ff8e53;
-  --yellow:#feca57;
-  --bg:#f8fafc;
-  --card:#ffffff;
-  --border:#e8edf2;
-  --text:#1e293b;
-  --muted:#94a3b8;
-  --green:#22c55e;
-}
-
-*{
-box-sizing:border-box;
-margin:0;
-padding:0;
-}
-
 body{
-font-family:'Noto Sans JP',sans-serif;
-background:var(--bg);
-max-width:480px;
-margin:auto;
+font-family:sans-serif;
+background:#f6f7fb;
+margin:0;
+padding:20px;
 }
 
-/* ここに続いてCSSが大量にあります */
+.header{
+font-size:28px;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+.sub{
+color:#666;
+margin-bottom:20px;
+}
+
+.tabs{
+display:flex;
+gap:10px;
+margin-bottom:20px;
+}
+
+.tab{
+padding:8px 14px;
+border-radius:10px;
+border:1px solid #ccc;
+background:white;
+cursor:pointer;
+}
+
+.add{
+padding:12px 18px;
+border:none;
+border-radius:12px;
+background:#ff6b6b;
+color:white;
+font-size:16px;
+}
+
+.item{
+background:white;
+padding:10px;
+border-radius:10px;
+margin-bottom:10px;
+display:flex;
+justify-content:space-between;
+}
 
 </style>
 </head>
 
 <body>
 
-<!-- ヘッダー -->
 <div class="header">
-  <div class="header-top">
-    <div>
-      <div class="header-sub">SHOPPING LIST</div>
-      <div class="header-title">お買い物リスト</div>
-    </div>
-  </div>
+SHOPPING LIST
 </div>
 
-<!-- タブ -->
+<div class="sub">
+お買い物リスト
+</div>
+
 <div class="tabs">
-  <button class="tab active">リスト</button>
-  <button class="tab">テンプレ</button>
+<button class="tab">リスト</button>
+<button class="tab">テンプレ</button>
 </div>
 
-<!-- コンテンツ -->
-<div class="content">
-
-<div id="itemList"></div>
-
-<button onclick="openForm()" class="add-btn">
+<button class="add" onclick="addItem()">
 ＋ 商品を追加
 </button>
 
-</div>
+<div id="list"></div>
 
 <script>
 
-/* ここからJavaScript */
-
-let items = JSON.parse(localStorage.getItem('kaimono_items') || '[]');
-let templates = JSON.parse(localStorage.getItem('kaimono_templates') || '[]');
+let items = JSON.parse(localStorage.getItem("kaimono_items")||"[]")
 
 function save(){
-localStorage.setItem('kaimono_items',JSON.stringify(items
+localStorage.setItem("kaimono_items",JSON.stringify(items))
+}
+
+function addItem(){
+
+const name = prompt("商品名")
+
+if(!name)return
+
+items.push({
+id:Date.now(),
+name:name
+})
+
+save()
+render()
+
+}
+
+function removeItem(id){
+
+items=items.filter(i=>i.id!==id)
+
+save()
+render()
+
+}
+
+function render(){
+
+const list=document.getElementById("list")
+
+list.innerHTML=""
+
+items.forEach(i=>{
+
+const div=document.createElement("div")
+
+div.className="item"
+
+div.innerHTML=`
+<span>${i.name}</span>
+<button onclick="removeItem(${i.id})">削除</button>
+`
+
+list.appendChild(div)
+
+})
+
+}
+
+render()
+
+</script>
+
+</body>
+</html>
