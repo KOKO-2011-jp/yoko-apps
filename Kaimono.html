@@ -2,207 +2,82 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>お買い物リスト</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
 
 <style>
 
-body{
-font-family:sans-serif;
-background:#fafafa;
+/* ここからデザインCSS */
+
+:root {
+  --red:#ff6b6b;
+  --orange:#ff8e53;
+  --yellow:#feca57;
+  --bg:#f8fafc;
+  --card:#ffffff;
+  --border:#e8edf2;
+  --text:#1e293b;
+  --muted:#94a3b8;
+  --green:#22c55e;
+}
+
+*{
+box-sizing:border-box;
 margin:0;
-padding:20px;
+padding:0;
 }
 
-h1{
-text-align:center;
-}
-
-.container{
-max-width:700px;
+body{
+font-family:'Noto Sans JP',sans-serif;
+background:var(--bg);
+max-width:480px;
 margin:auto;
 }
 
-button{
-padding:14px;
-border-radius:12px;
-border:none;
-background:#ff6b8a;
-color:white;
-font-size:16px;
-cursor:pointer;
-}
-
-button.secondary{
-background:#eee;
-color:#333;
-}
-
-textarea{
-width:100%;
-padding:10px;
-border-radius:10px;
-border:1px solid #ccc;
-margin-bottom:10px;
-}
-
-.result{
-margin-top:20px;
-background:white;
-border-radius:12px;
-padding:10px;
-box-shadow:0 2px 10px rgba(0,0,0,0.05);
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-}
-
-td,th{
-padding:8px;
-border-bottom:1px solid #eee;
-}
-
-th{
-background:#f5f5f5;
-}
-
-.actions{
-display:flex;
-gap:10px;
-margin-bottom:10px;
-}
-
-.actions button{
-flex:1;
-}
+/* ここに続いてCSSが大量にあります */
 
 </style>
-
 </head>
 
 <body>
 
-<div class="container">
-
-<h1>🛒 お買い物リスト</h1>
-
-<div class="actions">
-
-<button onclick="cameraInput.click()">
-📷 撮影
-</button>
-
-<button onclick="uploadInput.click()">
-📁 アップロード
-</button>
-
+<!-- ヘッダー -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-sub">SHOPPING LIST</div>
+      <div class="header-title">お買い物リスト</div>
+    </div>
+  </div>
 </div>
 
-<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
-<input type="file" id="uploadInput" accept="image/*" style="display:none">
+<!-- タブ -->
+<div class="tabs">
+  <button class="tab active">リスト</button>
+  <button class="tab">テンプレ</button>
+</div>
 
-<h3>テキストからリスト化</h3>
+<!-- コンテンツ -->
+<div class="content">
 
-<textarea id="orderText" rows="10" placeholder="注文テキストを貼り付け"></textarea>
+<div id="itemList"></div>
 
-<button onclick="convertText()">
-📝 リスト化
+<button onclick="openForm()" class="add-btn">
+＋ 商品を追加
 </button>
-
-<div id="result" class="result"></div>
 
 </div>
 
 <script>
 
-function convertText(){
+/* ここからJavaScript */
 
-const text=document.getElementById("orderText").value
+let items = JSON.parse(localStorage.getItem('kaimono_items') || '[]');
+let templates = JSON.parse(localStorage.getItem('kaimono_templates') || '[]');
 
-const blocks=text.split("[品番]").slice(1)
-
-const items=[]
-
-for(const block of blocks){
-
-const name=block.match(/\[商品名\]\s*(.+)/)
-
-const pq=block.match(/価格:\s*(\d+)円x数量:\s*(\d+)=\s*小計：\s*(\d+)円/)
-
-if(!name||!pq)continue
-
-items.push({
-
-name:name[1],
-
-price:Number(pq[1]),
-
-qty:Number(pq[2]),
-
-subtotal:Number(pq[3])
-
-})
-
-}
-
-renderList(items)
-
-}
-
-function renderList(items){
-
-const target=document.getElementById("result")
-
-if(items.length==0){
-
-target.innerHTML="読み取れませんでした"
-
-return
-
-}
-
-let total=0
-
-let html="<table>"
-
-html+="<tr><th>商品</th><th>単価</th><th>数量</th><th>小計</th></tr>"
-
-for(const item of items){
-
-total+=item.subtotal
-
-html+=`<tr>
-
-<td>${item.name}</td>
-
-<td>${item.price}円</td>
-
-<td>${item.qty}</td>
-
-<td>${item.subtotal}円</td>
-
-</tr>`
-
-}
-
-html+=`<tr>
-
-<td colspan="3"><b>合計</b></td>
-
-<td><b>${total}円</b></td>
-
-</tr>`
-
-html+="</table>"
-
-target.innerHTML=html
-
-}
-
-</script>
-
-</body>
-</html>
+function save(){
+localStorage.setItem('kaimono_items',JSON.stringify(items
