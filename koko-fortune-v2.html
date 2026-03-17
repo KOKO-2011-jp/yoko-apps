@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐱 ここちゃん星占い</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0818;
+      --card: rgba(255,255,255,0.06);
+      --card-border: rgba(255,255,255,0.12);
+      --text: #f0eaff;
+      --muted: rgba(240,234,255,0.5);
+      --accent1: #ff6eb4;
+      --accent2: #b06aff;
+      --accent3: #ffd166;
+      --glow1: rgba(255,110,180,0.3);
+      --glow2: rgba(176,106,255,0.3);
+      --star: #ffd166;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ━━━ 星空背景 ━━━ */
+    .sky {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .sky::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% -10%, rgba(176,106,255,0.25) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 110%, rgba(255,110,180,0.2) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(20,10,40,0.8) 0%, transparent 100%);
+    }
+
+    .stars-bg {
+      position: absolute;
+      inset: 0;
+    }
+
+    .star-dot {
+      position: absolute;
+      border-radius: 50%;
+      background: #fff;
+      animation: twinkle var(--dur, 3s) ease-in-out infinite var(--delay, 0s);
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: var(--min-op, 0.2); transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.4); }
+    }
+
+    /* ━━━ レイアウト ━━━ */
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 16px 60px;
+    }
+
+    /* ━━━ ヘッダー ━━━ */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeDown 0.8s ease both;
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .cat-icon {
+      font-size: 64px;
+      line-height: 1;
+      display: block;
+      margin-bottom: 12px;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .header h1 {
+      font-family: 'Kaisei Decol', serif;
+      font-size: clamp(28px, 6vw, 48px);
+      background: linear-gradient(135deg, #ff6eb4, #b06aff, #ffd166);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* ━━━ グリッド ━━━ */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 760px) {
+      .grid {
+        grid-template-columns: 340px 1fr;
+        align-items: start;
+      }
+    }
+
+    /* ━━━ ガラスカード ━━━ */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 24px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .card h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+
+    /* ━━━ フォーム ━━━ */
+    .field {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 14px;
+      font-size: 16px;
+      color: var(--text);
+      font-family: 'Noto Sans JP', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 3px rgba(176,106,255,0.2);
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1) opacity(0.5);
+    }
+
+    select option {
+      background: #1a0d30;
+      color: var(--text);
+    }
+
+    /* ━━━ モードチップ ━━━ */
+    .mode-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+
+    .chip:hover {
+      border-color: var(--accent2);
+      color: var(--text);
+    }
+
+    .chip.active {
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 4px 14px var(--glow1);
+    }
+
+    /* ━━━ メインボタン ━━━ */
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 900;
+      color: #fff;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      box-shadow: 0 8px 24px var(--glow1);
+      font-family: 'Noto Sans JP', sans-serif;
+      letter-spacing: 0.05em;
+      transition: transform 0.15s, box-shadow 0.15s;
+      margin-top: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px var(--glow1); }
+    .btn:hover::after { opacity: 1; }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .btn-sub {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 14px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+      background: transparent;
+      font-family: 'Noto Sans JP', sans-serif;
+      margin-top: 10px;
+      transition: all 0.2s;
+    }
+
+    .btn-sub:hover { border-color: var(--accent2); color: var(--text); }
+
+    /* ━━━ 結果カード ━━━ */
+    #result-card {
+      transition: all 0.4s ease;
+    }
+
+    .sign-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, rgba(255,110,180,0.15), rgba(176,106,255,0.15));
+      border: 1px solid rgba(255,110,180,0.3);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .sign-emoji { font-size: 20px; }
+
+    .headline {
+      font-family: 'Kaisei Decol', serif;
+      font-size: clamp(22px, 5vw, 36px);
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #fff, #e0d4ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stars-row {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .star-item {
+      font-size: 22px;
+      transition: transform 0.3s;
+    }
+
+    .star-item.lit { color: var(--star); }
+    .star-item.dim { color: rgba(255,255,255,0.2); }
+
+    .date-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    /* ━━━ AIメッセージ欄 ━━━ */
+    .ai-message-box {
+      background: linear-gradient(135deg, rgba(255,110,180,0.08), rgba(176,106,255,0.08));
+      border: 1px solid rgba(176,106,255,0.25);
+      border-radius: 18px;
+      padding: 18px;
+      line-height: 1.9;
+      font-size: 15px;
+      margin-bottom: 18px;
+      min-height: 80px;
+      position: relative;
+    }
+
+    .ai-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent2);
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .ai-badge::before {
+      content: '✦';
+      animation: spin 4s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .typing-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.1em;
+      background: var(--accent2);
+      vertical-align: middle;
+      margin-left: 2px;
+      animation: blink 0.8s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ━━━ ミニグリッド ━━━ */
+    .mini-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .mini {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 16px;
+      padding: 13px 14px;
+      transition: all 0.2s;
+    }
+
+    .mini:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(176,106,255,0.3);
+      transform: translateY(-2px);
+    }
+
+    .mini .k {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .mini .v {
+      font-size: 15px;
+      font-weight: 900;
+      line-height: 1.4;
+    }
+
+    /* ━━━ 運勢メーター ━━━ */
+    .meter-row {
+      margin-bottom: 18px;
+    }
+
+    .meter-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .meters {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .meter-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .meter-name {
+      width: 48px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .meter-bar-bg {
+      flex: 1;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .meter-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      width: 0%;
+      transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .meter-pct {
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--accent3);
+      width: 32px;
+      text-align: right;
+    }
+
+    /* ━━━ キーワードタグ ━━━ */
+    .keyword-area {
+      margin-bottom: 16px;
+    }
+
+    .keyword-tag {
+      display: inline-block;
+      padding: 8px 18px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(255,209,102,0.15), rgba(255,110,180,0.15));
+      border: 1px solid rgba(255,209,102,0.3);
+      color: var(--accent3);
+      font-size: 16px;
+      font-weight: 900;
+      font-family: 'Kaisei Decol', serif;
+    }
+
+    /* ━━━ ローディング ━━━ */
+    .loading-state {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .loader {
+      display: inline-block;
+      font-size: 40px;
+      animation: spin 1.5s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    .loading-text {
+      color: var(--muted);
+      font-size: 14px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    /* ━━━ 初期状態 ━━━ */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+
+    .empty-state .big-cat {
+      font-size: 60px;
+      display: block;
+      margin-bottom: 12px;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    /* ━━━ フッター ━━━ */
+    .footer-links {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text); }
+
+    .note {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-top: 14px;
+      opacity: 0.7;
+    }
+
+    /* ━━━ アニメーション ━━━ */
+    .reveal {
+      animation: revealUp 0.5s ease both;
+    }
+
+    @keyframes revealUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .shake {
+      animation: shake 0.4s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 星空 -->
+<div class="sky">
+  <div class="stars-bg" id="starsBg"></div>
+</div>
+
+<div class="wrap">
+  <!-- ヘッダー -->
+  <div class="header">
+    <span class="cat-icon">🐱</span>
+    <h1>ここちゃん星占い</h1>
+    <p>今日の星が、あなたにそっと語りかける</p>
+  </div>
+
+  <div class="grid">
+    <!-- 左: 入力 -->
+    <div class="card">
+      <h2>✦ 占いの設定</h2>
+
+      <div class="field">
+        <label for="birthday">誕生日</label>
+        <input id="birthday" type="date">
+      </div>
+
+      <div class="field">
+        <label>占いモード</label>
+        <div class="mode-chips">
+          <button class="chip active" data-mode="normal">🌟 総合</button>
+          <button class="chip" data-mode="love">💕 恋愛</button>
+          <button class="chip" data-mode="work">💼 仕事</button>
+          <button class="chip" data-mode="money">💰 お金</button>
+          <button class="chip" data-mode="health">🌿 健康</button>
+        </div>
+      </div>
+
+      <button class="btn" id="fortuneBtn">🔮 ここちゃんに占ってもらう</button>
+      <button class="btn-sub" id="copyBtn">📋 結果をコピー</button>
+
+      <p class="note">
+        ✦ Claude AI がパーソナライズされた占いメッセージを生成します<br>
+        ✦ 西洋占星術の一般的な星座分類を使ったエンタメ版です
+      </p>
+    </div>
+
+    <!-- 右: 結果 -->
+    <div class="card" id="result-card">
+      <div class="empty-state" id="emptyState">
+        <span class="big-cat">🌙</span>
+        <p>誕生日を入れて<br>ここちゃんに聞いてみてね</p>
+      </div>
+
+      <div id="resultContent" style="display:none">
+        <div class="sign-badge">
+          <span class="sign-emoji" id="signEmoji">♈</span>
+          <span id="signName">牡羊座</span>
+        </div>
+
+        <div class="headline" id="headline">今日のタイトル</div>
+
+        <div class="stars-row" id="starsRow"></div>
+
+        <div class="date-label" id="dateLabel">—</div>
+
+        <!-- AI メッセージ -->
+        <div class="ai-message-box">
+          <div class="ai-badge">✦ ここちゃんのメッセージ</div>
+          <div id="aiMessage">—</div>
+        </div>
+
+        <!-- 運勢メーター -->
+        <div class="meter-row">
+          <div class="meter-label">✦ 運勢バランス</div>
+          <div class="meters" id="meters"></div>
+        </div>
+
+        <!-- ミニ情報 -->
+        <div class="mini-grid">
+          <div class="mini"><div class="k">性格タイプ</div><div class="v" id="personality">—</div></div>
+          <div class="mini"><div class="k">エレメント</div><div class="v" id="element">—</div></div>
+          <div class="mini"><div class="k">守護星</div><div class="v" id="ruler">—</div></div>
+          <div class="mini"><div class="k">相性のよい星座</div><div class="v" id="compatibility">—</div></div>
+          <div class="mini"><div class="k">ラッキーカラー</div><div class="v" id="luckyColor">—</div></div>
+          <div class="mini"><div class="k">ラッキー曜日</div><div class="v" id="luckyDay">—</div></div>
+          <div class="mini"><div class="k">ラッキーアイテム</div><div class="v" id="luckyItem">—</div></div>
+          <div class="mini"><div class="k">ラッキーフード</div><div class="v" id="luckyFood">—</div></div>
+        </div>
+
+        <!-- 合言葉 -->
+        <div class="keyword-area">
+          <div class="meter-label">✦ 今日の合言葉</div>
+          <div class="keyword-tag" id="keyword">—</div>
+        </div>
+
+        <div class="footer-links">
+          <a href="./index.html">← 展示場にもどる</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ━━━ 星空生成 ━━━ */
+(function() {
+  const bg = document.getElementById('starsBg');
+  for (let i = 0; i < 120; i++) {
+    const s = document.createElement('div');
+    s.className = 'star-dot';
+    const size = Math.random() * 2.5 + 0.5;
+    s.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;top:${Math.random()*100}%;
+      --dur:${2+Math.random()*4}s;
+      --delay:${Math.random()*4}s;
+      --min-op:${0.1+Math.random()*0.3};
+    `;
+    bg.appendChild(s);
+  }
+})();
+
+/* ━━━ モードチップ ━━━ */
+let selectedMode = 'normal';
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    selectedMode = chip.dataset.mode;
+  });
+});
+
+/* ━━━ 星座データ ━━━ */
+const SIGNS = [
+  { name:"牡羊座", emoji:"♈", start:[3,21], end:[4,19], personality:"情熱的で行動力がある", color:"🔴 情熱レッド", day:"🔥 火曜日", element:"🔥 火", ruler:"♂ 火星", compatibility:"獅子座・射手座", trait:"リーダー気質" },
+  { name:"牡牛座", emoji:"♉", start:[4,20], end:[5,20], personality:"落ち着きがあり粘り強い", color:"🟢 アースグリーン", day:"✨ 金曜日", element:"🌿 地", ruler:"♀ 金星", compatibility:"乙女座・山羊座", trait:"安定志向" },
+  { name:"双子座", emoji:"♊", start:[5,21], end:[6,21], personality:"好奇心旺盛で会話上手", color:"💛 ゴールデンイエロー", day:"💫 水曜日", element:"💨 風", ruler:"☿ 水星", compatibility:"天秤座・水瓶座", trait:"コミュニケーター" },
+  { name:"蟹座", emoji:"♋", start:[6,22], end:[7,22], personality:"優しく家庭的で思いやりがある", color:"🤍 ムーンシルバー", day:"🌙 月曜日", element:"🌊 水", ruler:"☾ 月", compatibility:"蠍座・魚座", trait:"ケアの達人" },
+  { name:"獅子座", emoji:"♌", start:[7,23], end:[8,22], personality:"華やかで自信にあふれる", color:"🌟 サンゴールド", day:"☀️ 日曜日", element:"🔥 火", ruler:"☉ 太陽", compatibility:"牡羊座・射手座", trait:"天性の主役" },
+  { name:"乙女座", emoji:"♍", start:[8,23], end:[9,22], personality:"丁寧で分析力が高い", color:"🟤 ウォームベージュ", day:"💫 水曜日", element:"🌿 地", ruler:"☿ 水星", compatibility:"牡牛座・山羊座", trait:"完璧主義者" },
+  { name:"天秤座", emoji:"♎", start:[9,23], end:[10,23], personality:"美意識が高くバランス感覚がある", color:"🌸 ローズピンク", day:"✨ 金曜日", element:"💨 風", ruler:"♀ 金星", compatibility:"双子座・水瓶座", trait:"調和の使者" },
+  { name:"蠍座", emoji:"♏", start:[10,24], end:[11,22], personality:"集中力が高く情が深い", color:"🟥 ディープクリムゾン", day:"🔥 火曜日", element:"🌊 水", ruler:"♇ 冥王星・♂ 火星", compatibility:"蟹座・魚座", trait:"深い洞察力" },
+  { name:"射手座", emoji:"♐", start:[11,23], end:[12,21], personality:"自由で前向き、冒険好き", color:"💜 ロイヤルパープル", day:"⚡ 木曜日", element:"🔥 火", ruler:"♃ 木星", compatibility:"牡羊座・獅子座", trait:"自由な魂" },
+  { name:"山羊座", emoji:"♑", start:[12,22], end:[1,19], personality:"まじめで責任感が強い", color:"⬛ ディープブラック", day:"🪐 土曜日", element:"🌿 地", ruler:"♄ 土星", compatibility:"牡牛座・乙女座", trait:"堅実な登山家" },
+  { name:"水瓶座", emoji:"♒", start:[1,20], end:[2,18], personality:"個性的で発想がユニーク", color:"💙 エレクトリックブルー", day:"🪐 土曜日", element:"💨 風", ruler:"⛢ 天王星・♄ 土星", compatibility:"双子座・天秤座", trait:"革命的思考家" },
+  { name:"魚座", emoji:"♓", start:[2,19], end:[3,20], personality:"感受性豊かでやさしい", color:"🔵 アクアブルー", day:"⚡ 木曜日", element:"🌊 水", ruler:"♆ 海王星・♃ 木星", compatibility:"蟹座・蠍座", trait:"夢想家" }
+];
+
+const ITEMS = ["お気に入りのペン✏️","ハンドクリーム🧴","ノート📓","イヤホン🎧","猫の写真🐱","リップバーム💄","小さな鏡🪞","お守り🔮","温かい靴下🧦","折りたたみ傘☂️"];
+const FOODS = ["ヨーグルト🥛","お味噌汁🍜","チョコひとかけ🍫","ナッツ🥜","おにぎり🍙","フルーツ🍓","スープ🥣","甘酒🍶","サラダ🥗","紅茶🍵"];
+const WORDS = ["ゆっくりでいい🌿","一歩ずつ🐾","笑顔でいこう😊","深呼吸🌬️","整える✨","あせらない🕊️","まず一つ🌱","自分にやさしく💕","丁寧に🌸","今日は軽やかに🌈"];
+const HEADS = ["今日、流れが変わる日","小さな奇跡が起きる日","じっくり育てる日","直感が光る日","自分らしく輝く日","静かに前進する日","心がほぐれる日","可能性が広がる日"];
+
+/* ━━━ シード乱数 ━━━ */
+function xmur3(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  return () => { h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return h >>> 0; };
+}
+function mulberry32(a) {
+  return () => { let t = a += 0x6D2B79F5; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
+function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+
+function getSign(month, day) {
+  for (const s of SIGNS) {
+    const [sm, sd] = s.start, [em, ed] = s.end;
+    if (sm < em || (sm === em && sd <= ed)) {
+      if ((month === sm && day >= sd) || (month === em && day <= ed) || (month > sm && month < em)) return s;
+    } else {
+      if ((month === sm && day >= sd) || (month === em && day <= ed) || (month > sm || month < em)) return s;
+    }
+  }
+  return SIGNS[0];
+}
+
+function formatToday() {
+  const d = new Date();
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), da = String(d.getDate()).padStart(2,'0');
+  return { key:`${y}-${m}-${da}`, label:`${y}年${m}月${da}日` };
+}
+
+/* ━━━ Anthropic API呼び出し ━━━ */
+async function fetchAIMessage(sign, mode, stars) {
+  const modeJa = {normal:'総合運',love:'恋愛運',work:'仕事運',money:'金運',health:'健康運'}[mode] || '総合運';
+  const starsText = ['','★一つ','★★二つ','★★★三つ','★★★★四つ','★★★★★五つ'][stars] || '三つ';
+  const prompt = `あなたは「ここちゃん」というキュートで洞察力のある猫の占い師です。
+星座：${sign.name}（${sign.emoji}）
+性格特性：${sign.personality}
+エレメント：${sign.element}
+守護星：${sign.ruler}
+特性：${sign.trait}
+占いモード：${modeJa}
+今日の星の数：${starsText}
+
+上記の情報をもとに、今日のパーソナルな占いメッセージを日本語で140字以内で書いてください。
+・語尾は「〜ニャ」「〜にゃん」など猫らしいかわいい言葉を自然に混ぜてください
+・その星座の性格や特性を踏まえた具体的なアドバイスを含めてください
+・温かく、背中を押してくれるような文章にしてください
+・絵文字を1〜2個使ってください
+メッセージのみ返してください（前置き不要）。`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const data = await response.json();
+  return data.content?.[0]?.text || 'ここちゃんが星を読んでいるニャ…';
+}
+
+/* ━━━ タイピングアニメーション ━━━ */
+async function typeText(el, text, speed = 28) {
+  el.innerHTML = '<span class="typing-cursor"></span>';
+  for (let i = 0; i < text.length; i++) {
+    await new Promise(r => setTimeout(r, speed));
+    el.innerHTML = text.slice(0, i + 1) + '<span class="typing-cursor"></span>';
+  }
+  el.innerHTML = text;
+}
+
+/* ━━━ 星レンダリング ━━━ */
+function renderStars(n, container) {
+  container.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const s = document.createElement('span');
+    s.className = 'star-item ' + (i <= n ? 'lit' : 'dim');
+    s.textContent = i <= n ? '★' : '☆';
+    s.style.animationDelay = `${i * 0.1}s`;
+    container.appendChild(s);
+  }
+}
+
+/* ━━━ メーターアニメーション ━━━ */
+function renderMeters(rng, container) {
+  const categories = [
+    { name: '💕 恋愛', val: clamp(Math.floor(rng() * 100), 20, 100) },
+    { name: '💼 仕事', val: clamp(Math.floor(rng() * 100), 20, 100) },
+    { name: '💰 金運', val: clamp(Math.floor(rng() * 100), 20, 100) },
+    { name: '🌿 健康', val: clamp(Math.floor(rng() * 100), 20, 100) },
+  ];
+  container.innerHTML = '';
+  categories.forEach(({ name, val }) => {
+    const row = document.createElement('div');
+    row.className = 'meter-item';
+    row.innerHTML = `
+      <div class="meter-name">${name}</div>
+      <div class="meter-bar-bg"><div class="meter-bar-fill" data-val="${val}"></div></div>
+      <div class="meter-pct">${val}%</div>
+    `;
+    container.appendChild(row);
+  });
+  // アニメーション
+  setTimeout(() => {
+    container.querySelectorAll('.meter-bar-fill').forEach(bar => {
+      bar.style.width = bar.dataset.val + '%';
+    });
+  }, 100);
+}
+
+/* ━━━ 占いメイン ━━━ */
+let lastShareText = '';
+
+document.getElementById('fortuneBtn').addEventListener('click', async () => {
+  const birthday = document.getElementById('birthday').value;
+  if (!birthday) {
+    document.getElementById('result-card').classList.add('shake');
+    setTimeout(() => document.getElementById('result-card').classList.remove('shake'), 500);
+    return;
+  }
+
+  const btn = document.getElementById('fortuneBtn');
+  btn.disabled = true;
+  btn.textContent = '🔮 星を読んでいるニャ…';
+
+  const emptyState = document.getElementById('emptyState');
+  const resultContent = document.getElementById('resultContent');
+  emptyState.innerHTML = `<div class="loading-state"><div class="loader">🔮</div><div class="loading-text">ここちゃんが星を読んでいるニャ…</div></div>`;
+  emptyState.style.display = 'block';
+  resultContent.style.display = 'none';
+
+  const bd = new Date(birthday + 'T00:00:00');
+  const month = bd.getMonth() + 1, day = bd.getDate();
+  const sign = getSign(month, day);
+  const today = formatToday();
+  const seed = xmur3(`${today.key}|${birthday}|${selectedMode}|koko-v2`)();
+  const rng = mulberry32(seed);
+
+  const stars = clamp(Math.floor(2 + rng() * 4), 2, 5);
+  const headline = pick(rng, HEADS);
+  const luckyItem = pick(rng, ITEMS);
+  const luckyFood = pick(rng, FOODS);
+  const keyword = pick(rng, WORDS);
+
+  // AI メッセージ取得
+  let aiMsg = '';
+  try {
+    aiMsg = await fetchAIMessage(sign, selectedMode, stars);
+  } catch (e) {
+    const fallbacks = {
+      normal: `${sign.name}のあなたにとって、今日は${sign.trait}の力が輝く日ニャ✨ 小さな一歩を大切にするほど、星の流れがあなたに寄り添うニャ。`,
+      love: `恋愛運は${sign.personality}のあなたらしく、素直な気持ちで動くと吉ニャ💕`,
+      work: `${sign.name}の集中力で、今日の仕事は整理してから始めると流れがよくなるニャ✨`,
+      money: `金運は積み重ねの日。${sign.trait}を活かして、ひとつ整えるだけで運気がアップするニャ💰`,
+      health: `${sign.element}のエネルギーを活かして、今日は体と心を丁寧に扱ってニャ🌿`
+    };
+    aiMsg = fallbacks[selectedMode] || fallbacks.normal;
+  }
+
+  // 表示
+  emptyState.style.display = 'none';
+  resultContent.style.display = 'block';
+  resultContent.classList.add('reveal');
+
+  document.getElementById('signEmoji').textContent = sign.emoji;
+  document.getElementById('signName').textContent = sign.name;
+  document.getElementById('headline').textContent = headline;
+  document.getElementById('dateLabel').textContent = `📅 ${today.label} · ${['総合','恋愛','仕事','お金','健康'][['normal','love','work','money','health'].indexOf(selectedMode)]}運`;
+  document.getElementById('personality').textContent = sign.personality;
+  document.getElementById('element').textContent = sign.element;
+  document.getElementById('ruler').textContent = sign.ruler;
+  document.getElementById('compatibility').textContent = sign.compatibility;
+  document.getElementById('luckyColor').textContent = sign.color;
+  document.getElementById('luckyDay').textContent = sign.day;
+  document.getElementById('luckyItem').textContent = luckyItem;
+  document.getElementById('luckyFood').textContent = luckyFood;
+  document.getElementById('keyword').textContent = keyword;
+
+  renderStars(stars, document.getElementById('starsRow'));
+  renderMeters(rng, document.getElementById('meters'));
+  await typeText(document.getElementById('aiMessage'), aiMsg, 25);
+
+  lastShareText =
+`🐱 ここちゃん星占い
+📅 ${today.label}
+${sign.emoji} ${sign.name} | ${sign.element} | ${sign.ruler}
+✨ ${headline}
+${'★'.repeat(stars)}${'☆'.repeat(5-stars)}
+
+💬 ${aiMsg}
+
+🎨 ラッキーカラー：${sign.color}
+🍀 ラッキーアイテム：${luckyItem}
+🍽️ ラッキーフード：${luckyFood}
+💫 今日の合言葉：${keyword}`;
+
+  btn.disabled = false;
+  btn.textContent = '🔮 もう一度占う';
+});
+
+/* ━━━ コピー ━━━ */
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  if (!lastShareText) { alert('先に占ってからコピーしてね🐱'); return; }
+  try {
+    await navigator.clipboard.writeText(lastShareText);
+    alert('コピーしました📋');
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = lastShareText;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('コピーしました📋');
+  }
+});
+</script>
+</body>
+</html>
