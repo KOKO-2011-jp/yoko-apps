@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐱 ねこのて もぐらたたき</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Zen+Antique&display=swap');
+
+  :root {
+    --sky: #ffe9c8;
+    --grass: #7bc67e;
+    --dark-grass: #5aa85e;
+    --hole: #3d2b1f;
+    --mole-body: #c8956c;
+    --mole-face: #f0c8a0;
+    --cat-paw: #f9c8d0;
+    --cat-paw-dark: #e8a0b0;
+    --accent: #ff6b6b;
+    --gold: #ffd700;
+    --text-dark: #3d2b1f;
+    --cloud: #fff8f0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: linear-gradient(180deg, #87ceeb 0%, #b0e0ff 40%, var(--sky) 100%);
+    min-height: 100vh;
+    font-family: 'Kosugi Maru', sans-serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Clouds */
+  .cloud {
+    position: fixed;
+    background: var(--cloud);
+    border-radius: 50px;
+    opacity: 0.85;
+    animation: drift linear infinite;
+  }
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: var(--cloud);
+    border-radius: 50%;
+  }
+  .cloud-1 { width: 120px; height: 40px; top: 8%; animation-duration: 30s; animation-delay: -5s; }
+  .cloud-1::before { width: 60px; height: 60px; top: -30px; left: 15px; }
+  .cloud-1::after { width: 40px; height: 40px; top: -18px; left: 55px; }
+  .cloud-2 { width: 180px; height: 50px; top: 18%; animation-duration: 45s; animation-delay: -15s; }
+  .cloud-2::before { width: 80px; height: 80px; top: -40px; left: 20px; }
+  .cloud-2::after { width: 55px; height: 55px; top: -25px; left: 85px; }
+  .cloud-3 { width: 100px; height: 35px; top: 5%; animation-duration: 35s; animation-delay: -25s; }
+  .cloud-3::before { width: 50px; height: 50px; top: -25px; left: 10px; }
+  .cloud-3::after { width: 35px; height: 35px; top: -15px; left: 50px; }
+
+  @keyframes drift {
+    from { transform: translateX(-250px); }
+    to { transform: translateX(110vw); }
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 16px 20px 8px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .title {
+    font-family: 'Zen Antique', serif;
+    font-size: clamp(24px, 5vw, 40px);
+    color: var(--text-dark);
+    text-shadow: 3px 3px 0 #fff, 5px 5px 0 rgba(0,0,0,0.1);
+    letter-spacing: 0.05em;
+  }
+
+  .title .paw { display: inline-block; animation: wiggle 2s ease-in-out infinite; }
+  @keyframes wiggle { 0%,100%{transform:rotate(-10deg)} 50%{transform:rotate(10deg)} }
+
+  /* Score board */
+  .scoreboard {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 28px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 30px;
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(255,255,255,0.9);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    margin: 8px 0;
+    font-size: clamp(14px, 3vw, 18px);
+    color: var(--text-dark);
+    position: relative;
+    z-index: 10;
+  }
+
+  .score-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .score-label { font-size: 0.7em; opacity: 0.7; }
+  .score-value { font-size: 1.5em; font-weight: bold; color: var(--accent); }
+  #timer-val { color: #2196F3; }
+  #hiscore-val { color: var(--gold); }
+
+  /* Divider */
+  .divider { width: 1px; height: 40px; background: rgba(0,0,0,0.15); }
+
+  /* Control Buttons */
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin: 8px 0;
+    z-index: 10;
+  }
+
+  .btn {
+    padding: 10px 28px;
+    border: none;
+    border-radius: 25px;
+    font-family: 'Kosugi Maru', sans-serif;
+    font-size: clamp(14px, 3vw, 18px);
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+    position: relative;
+    top: 0;
+  }
+  .btn:active { top: 3px; box-shadow: 0 1px 0 rgba(0,0,0,0.2); }
+
+  .btn-start {
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+    color: white;
+    font-size: clamp(16px, 3.5vw, 22px);
+    padding: 12px 36px;
+  }
+  .btn-start:hover { background: linear-gradient(135deg, #ff8e53, #ff6b6b); transform: scale(1.04); }
+
+  /* Difficulty */
+  .difficulty {
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+    margin-bottom: 4px;
+  }
+  .diff-btn {
+    padding: 6px 18px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-radius: 20px;
+    background: rgba(255,255,255,0.6);
+    font-family: 'Kosugi Maru', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    color: var(--text-dark);
+    transition: all 0.15s;
+  }
+  .diff-btn.active, .diff-btn:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  /* Ground / Game area */
+  .game-scene {
+    position: relative;
+    width: min(520px, 96vw);
+    margin: 0 auto;
+    flex: 1;
+  }
+
+  .ground {
+    background: linear-gradient(180deg, var(--grass) 0%, var(--dark-grass) 100%);
+    border-radius: 28px 28px 0 0;
+    padding: 20px 16px 32px;
+    box-shadow: 0 -6px 0 #4a9d50, 0 8px 30px rgba(0,0,0,0.25);
+    position: relative;
+  }
+
+  /* Grid of holes */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  /* Each hole cell */
+  .cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: visible;
+  }
+
+  /* Hole (ellipse) */
+  .hole-wrap {
+    position: relative;
+    width: 100%;
+    padding-top: 45%;
+    overflow: visible;
+  }
+
+  /* もぐらは穴の中だけ見せる用マスク */
+  .hole-mask {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .hole-bg {
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    height: 90%;
+    background: radial-gradient(ellipse at center, var(--hole) 60%, #2a1a10 100%);
+    border-radius: 50%;
+    box-shadow: inset 0 6px 14px rgba(0,0,0,0.5);
+  }
+
+  /* Mole */
+  .mole-container {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .mole-container.up {
+    transform: translateX(-50%) translateY(20%);
+  }
+  .mole-container.hit {
+    transform: translateX(-50%) translateY(20%) scale(0.85) rotate(-8deg);
+  }
+
+  /* Mole SVG inline */
+  .mole-svg {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+  }
+
+  /* Score popup */
+  .score-popup {
+    position: absolute;
+    top: 0px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--gold);
+    text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 2px 2px 4px rgba(0,0,0,0.4);
+    pointer-events: none;
+    z-index: 30;
+    opacity: 0;
+    white-space: nowrap;
+  }
+  .score-popup.pop {
+    animation: popup 0.7s ease-out forwards;
+  }
+  @keyframes popup {
+    0%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+    80% { opacity: 1; transform: translateX(-50%) translateY(-40px); }
+    100%{ opacity: 0; transform: translateX(-50%) translateY(-55px); }
+  }
+
+  /* Mound (dirt pile in front of hole) */
+  .mound {
+    width: 92%;
+    height: 28px;
+    background: linear-gradient(180deg, var(--dark-grass) 0%, var(--grass) 100%);
+    border-radius: 50%;
+    margin-top: -10px;
+    position: relative;
+    z-index: 6;
+    box-shadow: 0 -4px 8px rgba(0,0,0,0.15);
+  }
+
+  /* Combo display */
+  .combo-display {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Zen Antique', serif;
+    font-size: 80px;
+    color: var(--gold);
+    text-shadow: 3px 3px 0 #ff6b6b, 6px 6px 10px rgba(0,0,0,0.4);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .combo-display.show {
+    animation: comboAnim 0.8s ease-out forwards;
+  }
+  @keyframes comboAnim {
+    0%  { opacity: 1; transform: translate(-50%,-50%) scale(0.5); }
+    40% { opacity: 1; transform: translate(-50%,-50%) scale(1.2); }
+    70% { opacity: 0.8; transform: translate(-50%,-50%) scale(1.0); }
+    100%{ opacity: 0; transform: translate(-50%,-50%) scale(0.9) translateY(-30px); }
+  }
+
+  /* Overlay: start / end */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 20, 10, 0.75);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(4px);
+    opacity: 1;
+    transition: opacity 0.3s;
+  }
+  .overlay.hidden { display: none; }
+
+  .overlay-box {
+    background: linear-gradient(135deg, #fff8f0, #ffe9c8);
+    border-radius: 28px;
+    padding: 36px 48px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 4px var(--gold);
+    max-width: 380px;
+    width: 90%;
+  }
+
+  .overlay-title {
+    font-family: 'Zen Antique', serif;
+    font-size: 2.2em;
+    color: var(--text-dark);
+    margin-bottom: 12px;
+  }
+
+  .overlay-result {
+    font-size: 1.1em;
+    color: #555;
+    margin-bottom: 24px;
+    line-height: 1.7;
+  }
+  .overlay-result strong { color: var(--accent); font-size: 1.5em; }
+  .overlay-result .hi { color: var(--gold); }
+
+  /* Decorative cats */
+  .deco-cat {
+    font-size: 3em;
+    margin-bottom: 12px;
+    display: block;
+    animation: bounce 1s ease-in-out infinite alternate;
+  }
+  @keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-10px)} }
+
+  /* Stars background in overlay */
+  .stars { font-size: 2em; letter-spacing: 4px; margin-bottom: 8px; }
+
+  /* ── お花 ── */
+  .flower-container {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    transition: transform 0.22s cubic-bezier(0.34,1.4,0.64,1);
+    width: 68%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .flower-container.up {
+    transform: translateX(-50%) translateY(-55%);
+  }
+  .flower-container.hit-flower {
+    transform: translateX(-50%) translateY(-55%) rotate(20deg) scale(0.8);
+  }
+  .flower-svg { width: 100%; height: auto; }
+
+  /* NGポップアップ */
+  .ng-popup {
+    position: absolute;
+    top: 0px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.6em;
+    font-weight: bold;
+    color: #ff3366;
+    text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 2px 2px 6px rgba(0,0,0,0.3);
+    pointer-events: none;
+    z-index: 30;
+    opacity: 0;
+    white-space: nowrap;
+  }
+  .ng-popup.pop {
+    animation: ngpop 0.75s ease-out forwards;
+  }
+  @keyframes ngpop {
+    0%  { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1.3); }
+    50% { opacity: 1; transform: translateX(-50%) translateY(-30px) scale(1.0); }
+    100%{ opacity: 0; transform: translateX(-50%) translateY(-50px) scale(0.9); }
+  }
+
+  /* 画面シェイク */
+  @keyframes screenShake {
+    0%,100% { transform: translateX(0); }
+    20%      { transform: translateX(-6px); }
+    40%      { transform: translateX(6px); }
+    60%      { transform: translateX(-4px); }
+    80%      { transform: translateX(4px); }
+  }
+  .shake { animation: screenShake 0.35s ease-out; }
+
+  /* ── 歩き猫 ── */
+  .walking-cat {
+    position: absolute;
+    bottom: 26px;
+    font-size: clamp(28px, 6vw, 42px);
+    z-index: 15;
+    pointer-events: none;
+    white-space: nowrap;
+    filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.25));
+    animation: catWalk linear forwards;
+  }
+  .walking-cat.left-to-right {
+    left: -60px;
+    animation-name: catWalkLR;
+  }
+  .walking-cat.right-to-left {
+    right: -60px;
+    animation-name: catWalkRL;
+  }
+  @keyframes catWalkLR {
+    0%   { transform: translateX(0)       scaleX(1);  }
+    100% { transform: translateX(calc(100vw + 120px)) scaleX(1); }
+  }
+  @keyframes catWalkRL {
+    0%   { transform: translateX(0)        scaleX(-1); }
+    100% { transform: translateX(calc(-100vw - 120px)) scaleX(-1); }
+  }
+
+  /* ── びっくり猫 ── */
+  .surprise-cat {
+    position: absolute;
+    font-size: clamp(32px, 7vw, 48px);
+    z-index: 25;
+    pointer-events: none;
+    opacity: 0;
+    filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+  }
+  .surprise-cat.pop {
+    animation: surprisePop 0.9s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  @keyframes surprisePop {
+    0%   { opacity: 1; transform: translateY(0)    scale(0.5) rotate(-10deg); }
+    35%  { opacity: 1; transform: translateY(-55px) scale(1.3) rotate(12deg); }
+    60%  { opacity: 1; transform: translateY(-45px) scale(1.1) rotate(-5deg); }
+    80%  { opacity: 1; transform: translateY(-48px) scale(1.05) rotate(0deg); }
+    100% { opacity: 0; transform: translateY(-70px) scale(0.9) rotate(0deg); }
+  }
+
+  /* Grass blades decorative */
+  .grass-deco {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    height: 18px;
+    background:
+      repeating-linear-gradient(90deg,
+        transparent 0px, transparent 6px,
+        #5aa85e 6px, #5aa85e 8px
+      );
+    border-radius: 0 0 28px 28px;
+    opacity: 0.5;
+  }
+
+  /* Responsive */
+  @media (max-width: 400px) {
+    .grid { gap: 10px; }
+    .btn-start { padding: 10px 28px; font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Clouds -->
+<div class="cloud cloud-1"></div>
+<div class="cloud cloud-2"></div>
+<div class="cloud cloud-3"></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="title">🐱 <span class="paw">🐾</span> ねこのてもぐらたたき</div>
+</div>
+
+<!-- Scoreboard -->
+<div class="scoreboard">
+  <div class="score-item">
+    <span class="score-label">スコア</span>
+    <span class="score-value" id="score-val">0</span>
+  </div>
+  <div class="divider"></div>
+  <div class="score-item">
+    <span class="score-label">のこり時間</span>
+    <span class="score-value" id="timer-val" style="color:#2196F3">30</span>
+  </div>
+  <div class="divider"></div>
+  <div class="score-item">
+    <span class="score-label">ハイスコア</span>
+    <span class="score-value" id="hiscore-val" style="color:var(--gold)">0</span>
+  </div>
+</div>
+
+<!-- Difficulty -->
+<div class="difficulty">
+  <button class="diff-btn active" data-diff="easy" onclick="setDiff(this,'easy')">やさしい</button>
+  <button class="diff-btn" data-diff="normal" onclick="setDiff(this,'normal')">ふつう</button>
+  <button class="diff-btn" data-diff="hard" onclick="setDiff(this,'hard')">むずかしい</button>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <button class="btn btn-start" id="startBtn" onclick="startGame()">🐱 スタート！</button>
+</div>
+
+<!-- Game Scene -->
+<div class="game-scene" id="gameScene">
+  <div class="ground" id="ground">
+    <div class="grid" id="grid"></div>
+    <div class="grass-deco"></div>
+  </div>
+</div>
+
+<!-- Combo display -->
+<div class="combo-display" id="comboDisplay"></div>
+
+<!-- Start/End Overlay -->
+<div class="overlay" id="overlay">
+  <div class="overlay-box">
+    <span class="deco-cat">🐱</span>
+    <div class="overlay-title">ねこのて もぐらたたき</div>
+    <div class="overlay-result" id="overlay-result">
+      もぐらをにゃんこのてで<br>たたこう！<br><br>
+      なんびきたたけるかな？
+    </div>
+    <div class="stars" id="overlay-stars">⭐⭐⭐</div>
+    <button class="btn btn-start" onclick="startGame()">🎮 はじめる！</button>
+  </div>
+</div>
+
+<script>
+// ─── Config ───────────────────────────────────────────────
+const CONFIGS = {
+  easy:   { upTime: 1800, interval: 1400, maxUp: 2, points: 10 },
+  normal: { upTime: 1200, interval: 900,  maxUp: 3, points: 15 },
+  hard:   { upTime: 800,  interval: 600,  maxUp: 4, points: 20 },
+};
+const GAME_TIME = 30;
+const CELLS = 9;
+
+// ─── State ────────────────────────────────────────────────
+let score = 0, hiscore = 0, timeLeft = GAME_TIME;
+let gameActive = false, combo = 0;
+let difficulty = 'easy';
+let spawnTimer, countdownTimer;
+let cellStates = Array(CELLS).fill('idle'); // idle | up | hit | flower | flower-hit
+let cellTypes  = Array(CELLS).fill('mole'); // mole | flower
+let upTimers = Array(CELLS).fill(null);
+
+// ─── DOM Helpers ──────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const scoreEl = $('score-val'), timerEl = $('timer-val'), hiscoreEl = $('hiscore-val');
+const overlay = $('overlay'), overlayResult = $('overlay-result'), overlayStars = $('overlay-stars');
+const comboDisplay = $('comboDisplay');
+
+// ─── SVG Builders ─────────────────────────────────────────
+function moleSVG() {
+  return `
+  <svg class="mole-svg" viewBox="0 0 80 70" xmlns="http://www.w3.org/2000/svg">
+    <!-- body -->
+    <ellipse cx="40" cy="52" rx="28" ry="22" fill="#c8956c"/>
+    <!-- head -->
+    <ellipse cx="40" cy="36" rx="24" ry="22" fill="#c8956c"/>
+    <!-- face -->
+    <ellipse cx="40" cy="38" rx="17" ry="16" fill="#f0c8a0"/>
+    <!-- ears -->
+    <ellipse cx="18" cy="18" rx="8" ry="10" fill="#c8956c"/>
+    <ellipse cx="62" cy="18" rx="8" ry="10" fill="#c8956c"/>
+    <ellipse cx="18" cy="18" rx="5" ry="7" fill="#e8a0a0"/>
+    <ellipse cx="62" cy="18" rx="5" ry="7" fill="#e8a0a0"/>
+    <!-- eyes -->
+    <circle cx="30" cy="32" r="6" fill="white"/>
+    <circle cx="50" cy="32" r="6" fill="white"/>
+    <circle cx="31" cy="32" r="3.5" fill="#3d2b1f"/>
+    <circle cx="51" cy="32" r="3.5" fill="#3d2b1f"/>
+    <circle cx="32" cy="31" r="1.5" fill="white"/>
+    <circle cx="52" cy="31" r="1.5" fill="white"/>
+    <!-- nose -->
+    <ellipse cx="40" cy="40" rx="4" ry="3" fill="#e87070"/>
+    <!-- mouth -->
+    <path d="M36 43 Q40 47 44 43" stroke="#3d2b1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- whiskers -->
+    <line x1="20" y1="40" x2="36" y2="41" stroke="#3d2b1f" stroke-width="1" opacity="0.6"/>
+    <line x1="20" y1="44" x2="36" y2="43" stroke="#3d2b1f" stroke-width="1" opacity="0.6"/>
+    <line x1="60" y1="40" x2="44" y2="41" stroke="#3d2b1f" stroke-width="1" opacity="0.6"/>
+    <line x1="60" y1="44" x2="44" y2="43" stroke="#3d2b1f" stroke-width="1" opacity="0.6"/>
+    <!-- paws on edge -->
+    <ellipse cx="18" cy="62" rx="10" ry="7" fill="#c8956c"/>
+    <ellipse cx="62" cy="62" rx="10" ry="7" fill="#c8956c"/>
+  </svg>`;
+}
+
+// ─── Flower SVG ───────────────────────────────────────────
+function flowerSVG() {
+  const colors = [
+    { petal:'#ff8fab', center:'#ffe066' },
+    { petal:'#ffb347', center:'#fff176' },
+    { petal:'#b5ead7', center:'#ffe066' },
+    { petal:'#c9b1ff', center:'#ffe066' },
+    { petal:'#ff6b6b', center:'#fff176' },
+  ];
+  const c = colors[Math.floor(Math.random() * colors.length)];
+  return `
+  <svg class="flower-svg" viewBox="0 0 80 90" xmlns="http://www.w3.org/2000/svg">
+    <!-- stem -->
+    <path d="M40 88 Q36 70 40 55" stroke="#6abf69" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M40 75 Q30 68 24 62" stroke="#6abf69" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <ellipse cx="21" cy="61" rx="7" ry="5" fill="#6abf69" transform="rotate(-30 21 61)"/>
+    <!-- petals -->
+    <ellipse cx="40" cy="22" rx="9" ry="15" fill="${c.petal}" opacity="0.92"/>
+    <ellipse cx="40" cy="22" rx="9" ry="15" fill="${c.petal}" opacity="0.92" transform="rotate(60 40 38)"/>
+    <ellipse cx="40" cy="22" rx="9" ry="15" fill="${c.petal}" opacity="0.92" transform="rotate(120 40 38)"/>
+    <ellipse cx="40" cy="22" rx="9" ry="15" fill="${c.petal}" opacity="0.92" transform="rotate(180 40 38)"/>
+    <ellipse cx="40" cy="22" rx="9" ry="15" fill="${c.petal}" opacity="0.92" transform="rotate(240 40 38)"/>
+    <ellipse cx="40" cy="22" rx="9" ry="15" fill="${c.petal}" opacity="0.92" transform="rotate(300 40 38)"/>
+    <!-- center -->
+    <circle cx="40" cy="38" r="12" fill="${c.center}"/>
+    <circle cx="40" cy="38" r="8"  fill="${c.center}" opacity="0.7"/>
+    <!-- face -->
+    <circle cx="36" cy="36" r="2" fill="#3d2b1f"/>
+    <circle cx="44" cy="36" r="2" fill="#3d2b1f"/>
+    <path d="M36 42 Q40 46 44 42" stroke="#3d2b1f" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// ─── Build Grid ───────────────────────────────────────────
+function buildGrid() {
+  const grid = $('grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < CELLS; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.innerHTML = `
+      <div class="hole-wrap">
+        <div class="hole-bg"></div>
+        <div class="hole-mask">
+          <div class="mole-container" id="mole-${i}">${moleSVG()}</div>
+        </div>
+        <div class="flower-container" id="flower-${i}"></div>
+      </div>
+      <div class="score-popup" id="popup-${i}">+10</div>
+      <div class="ng-popup" id="ngpopup-${i}">🌸 -10</div>
+      <div class="mound"></div>
+    `;
+    cell.onclick = () => handleHit(i);
+    grid.appendChild(cell);
+  }
+}
+
+// ─── Difficulty ───────────────────────────────────────────
+function setDiff(btn, diff) {
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  difficulty = diff;
+}
+
+// ─── 歩き猫 ───────────────────────────────────────────────
+const CAT_SPRITES = ['🐱','😺','😸','🙀'];
+let walkTimer = null;
+
+function scheduleWalkingCat() {
+  if (!gameActive) return;
+  const delay = 4000 + Math.random() * 5000; // 4〜9秒おき
+  walkTimer = setTimeout(() => {
+    spawnWalkingCat();
+    scheduleWalkingCat();
+  }, delay);
+}
+
+function spawnWalkingCat() {
+  if (!gameActive) return;
+  const ground = $('ground');
+  const goRight = Math.random() < 0.5;
+  const sprite = CAT_SPRITES[Math.floor(Math.random() * CAT_SPRITES.length)];
+  const duration = 2800 + Math.random() * 1200; // 2.8〜4秒で横断
+
+  const cat = document.createElement('div');
+  cat.className = 'walking-cat ' + (goRight ? 'left-to-right' : 'right-to-left');
+  cat.textContent = sprite;
+  cat.style.animationDuration = duration + 'ms';
+
+  ground.appendChild(cat);
+  cat.addEventListener('animationend', () => cat.remove());
+}
+
+// ─── びっくり猫 ───────────────────────────────────────────
+function spawnSurpriseCat(cellIndex) {
+  const ground = $('ground');
+  const cells = ground.querySelectorAll('.cell');
+  if (!cells[cellIndex]) return;
+
+  const cellRect = cells[cellIndex].getBoundingClientRect();
+  const groundRect = ground.getBoundingClientRect();
+  const x = cellRect.left - groundRect.left + cellRect.width / 2;
+  const y = cellRect.top - groundRect.top;
+
+  const sprites = ['🙀','😱','😹'];
+  const sprite = sprites[Math.floor(Math.random() * sprites.length)];
+
+  const cat = document.createElement('div');
+  cat.className = 'surprise-cat';
+  cat.textContent = sprite;
+  cat.style.left = (x - 24) + 'px';
+  cat.style.top  = y + 'px';
+
+  ground.appendChild(cat);
+  void cat.offsetWidth;
+  cat.classList.add('pop');
+  cat.addEventListener('animationend', () => cat.remove());
+}
+
+// ─── Game Logic ───────────────────────────────────────────
+function startGame() {
+  // Reset
+  score = 0; timeLeft = GAME_TIME; combo = 0;
+  cellStates.fill('idle');
+  cellTypes.fill('mole');
+  upTimers.forEach(t => t && clearTimeout(t));
+  upTimers.fill(null);
+  clearInterval(spawnTimer);
+  clearInterval(countdownTimer);
+  clearTimeout(walkTimer);
+  document.querySelectorAll('.walking-cat,.surprise-cat').forEach(e => e.remove());
+
+  updateScore(); updateTimer();
+  overlay.classList.add('hidden');
+  gameActive = true;
+
+  buildGrid();
+
+  const cfg = CONFIGS[difficulty];
+  spawnTimer = setInterval(() => spawnMole(cfg), cfg.interval);
+
+  countdownTimer = setInterval(() => {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) endGame();
+  }, 1000);
+
+  // 歩き猫スタート
+  setTimeout(scheduleWalkingCat, 2000);
+}
+
+function spawnMole(cfg) {
+  const upCount = cellStates.filter(s => s === 'up' || s === 'flower').length;
+  if (upCount >= cfg.maxUp) return;
+
+  const idle = [];
+  cellStates.forEach((s, i) => { if (s === 'idle') idle.push(i); });
+  if (!idle.length) return;
+
+  const idx = idle[Math.floor(Math.random() * idle.length)];
+
+  // 25%の確率でお花
+  if (Math.random() < 0.25) {
+    raiseFlower(idx, cfg.upTime * 1.3);
+  } else {
+    raiseMole(idx, cfg.upTime);
+  }
+}
+
+function raiseFlower(i, upTime) {
+  cellStates[i] = 'flower';
+  cellTypes[i]  = 'flower';
+  const fc = $(`flower-${i}`);
+  fc.innerHTML = flowerSVG();
+  fc.classList.remove('hit-flower');
+  fc.classList.add('up');
+
+  upTimers[i] = setTimeout(() => {
+    if (cellStates[i] === 'flower') lowerFlower(i);
+  }, upTime);
+}
+
+function lowerFlower(i) {
+  cellStates[i] = 'idle';
+  cellTypes[i]  = 'mole';
+  const fc = $(`flower-${i}`);
+  fc.classList.remove('up', 'hit-flower');
+  setTimeout(() => { fc.innerHTML = ''; }, 300);
+}
+
+function raiseMole(i, upTime) {
+  cellStates[i] = 'up';
+  const mole = $(`mole-${i}`);
+  mole.classList.remove('hit');
+  mole.classList.add('up');
+
+  upTimers[i] = setTimeout(() => {
+    if (cellStates[i] === 'up') lowerMole(i);
+  }, upTime);
+}
+
+function lowerMole(i) {
+  cellStates[i] = 'idle';
+  cellTypes[i]  = 'mole';
+  const mole = $(`mole-${i}`);
+  mole.classList.remove('up', 'hit');
+  combo = 0;
+}
+
+function handleHit(i) {
+  if (!gameActive) return;
+
+  // ── お花を叩いた場合 ──
+  if (cellStates[i] === 'flower') {
+    cellStates[i] = 'flower-hit';
+    clearTimeout(upTimers[i]);
+
+    const fc = $(`flower-${i}`);
+    fc.classList.add('hit-flower');
+
+    // ペナルティ：難易度に応じて減点
+    const penalty = CONFIGS[difficulty].points;
+    score = Math.max(0, score - penalty);
+    updateScore();
+
+    // NGポップアップ（減点表示）
+    const ng = $(`ngpopup-${i}`);
+    ng.textContent = `🌸 -${penalty}`;
+    ng.classList.remove('pop');
+    void ng.offsetWidth;
+    ng.classList.add('pop');
+
+    // 画面シェイク（game-scene全体を揺らす）
+    const scene = $('gameScene');
+    scene.classList.remove('shake');
+    void scene.offsetWidth;
+    scene.classList.add('shake');
+    setTimeout(() => scene.classList.remove('shake'), 360);
+
+    // コンボリセット
+    combo = 0;
+
+    setTimeout(() => lowerFlower(i), 400);
+    return;
+  }
+
+  if (cellStates[i] !== 'up') return;
+
+  cellStates[i] = 'hit';
+  clearTimeout(upTimers[i]);
+
+  const mole = $(`mole-${i}`);
+  mole.classList.add('hit');
+  mole.classList.remove('up');
+
+  // びっくり猫！
+  spawnSurpriseCat(i);
+
+  // Combo
+  combo++;
+  const pts = CONFIGS[difficulty].points * (combo >= 3 ? 2 : 1);
+
+  // Score popup
+  const popup = $(`popup-${i}`);
+  popup.textContent = combo >= 3 ? `+${pts} ✨` : `+${pts}`;
+  popup.classList.remove('pop');
+  void popup.offsetWidth;
+  popup.classList.add('pop');
+
+  score += pts;
+  updateScore();
+
+  // Combo message
+  if (combo === 3)  showCombo('3コンボ！🎉');
+  if (combo === 5)  showCombo('5コンボ！⭐');
+  if (combo === 10) showCombo('10コンボ！🔥');
+
+  setTimeout(() => lowerMole(i), 200);
+}
+
+function showCombo(text) {
+  comboDisplay.textContent = text;
+  comboDisplay.classList.remove('show');
+  void comboDisplay.offsetWidth;
+  comboDisplay.classList.add('show');
+}
+
+function endGame() {
+  gameActive = false;
+  clearInterval(spawnTimer);
+  clearInterval(countdownTimer);
+  clearTimeout(walkTimer);
+
+  // Lower all
+  for (let i = 0; i < CELLS; i++) {
+    if (cellTypes[i] === 'flower') lowerFlower(i);
+    else lowerMole(i);
+  }
+
+  if (score > hiscore) hiscore = score;
+  hiscoreEl.textContent = hiscore;
+
+  const stars = score >= 150 ? '⭐⭐⭐' : score >= 80 ? '⭐⭐' : '⭐';
+  const msg = score >= 200 ? 'すごい！にゃんこのて名人！🏆' :
+              score >= 100 ? 'じょうず！またあそんでね🐱' :
+              'もっとはやくたたこう！🐾';
+
+  overlayResult.innerHTML = `
+    ゲームおわり！<br><br>
+    スコア：<strong>${score}</strong>点<br>
+    <span class="hi">ハイスコア：${hiscore}点</span><br><br>
+    ${msg}
+  `;
+  overlayStars.textContent = stars;
+  overlay.classList.remove('hidden');
+}
+
+// ─── UI Updates ───────────────────────────────────────────
+function updateScore() { scoreEl.textContent = score; }
+function updateTimer() {
+  timerEl.textContent = timeLeft;
+  timerEl.style.color = timeLeft <= 5 ? 'var(--accent)' : '#2196F3';
+  if (timeLeft <= 5) timerEl.style.animation = 'wiggle 0.3s ease-in-out infinite';
+  else timerEl.style.animation = '';
+}
+
+// ─── Init ─────────────────────────────────────────────────
+buildGrid();
+hiscoreEl.textContent = hiscore;
+</script>
+</body>
+</html>
