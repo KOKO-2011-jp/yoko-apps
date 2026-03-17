@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D オセロ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+JP:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a0e1a;overflow:hidden;height:100vh;font-family:'Noto Sans JP',sans-serif;color:#fff;}
+canvas{display:block;}
+
+/* ── HEADER ── */
+#header{
+  position:fixed;top:0;left:0;right:0;z-index:10;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 20px;
+  background:linear-gradient(180deg,rgba(5,8,20,0.97) 0%,transparent 100%);
+  pointer-events:none;
+}
+.logo{
+  font-family:'Orbitron',monospace;font-size:1.3rem;font-weight:900;letter-spacing:.2em;
+  background:linear-gradient(90deg,#00ffd0,#00aaff,#cc88ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.scores{display:flex;gap:10px;pointer-events:auto;}
+.sc{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 16px 7px 10px;border-radius:12px;
+  background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.1);
+  backdrop-filter:blur(10px);transition:all .3s ease;position:relative;
+}
+.sc.active-turn{transform:scale(1.08);border-color:rgba(0,255,200,.6);box-shadow:0 0 18px rgba(0,255,200,.25);}
+.sc.ai-card{border-color:rgba(255,180,0,.35);}
+.sc.ai-card.active-turn{border-color:rgba(255,180,0,.8);box-shadow:0 0 18px rgba(255,160,0,.3);}
+.ai-badge{
+  position:absolute;top:-7px;right:-4px;
+  font-family:'Orbitron',monospace;font-size:.45rem;letter-spacing:.1em;
+  background:linear-gradient(90deg,#ff9900,#ffcc00);color:#000;
+  padding:2px 6px;border-radius:4px;font-weight:700;
+}
+.sc-disc{width:26px;height:26px;border-radius:50%;}
+.disc-b{
+  background:radial-gradient(circle at 35% 30%,#666 0%,#1a1a2a 55%,#070710 100%);
+  border:1.5px solid rgba(120,120,200,.35);
+  box-shadow:0 2px 8px rgba(0,0,0,.8),inset 0 1px 3px rgba(255,255,255,.18);
+}
+.disc-w{
+  background:radial-gradient(circle at 35% 28%,#fff 0%,#ececff 40%,#c0c0e0 100%);
+  border:1.5px solid rgba(210,210,255,.6);
+  box-shadow:0 2px 14px rgba(255,255,220,.5),0 0 20px rgba(255,255,200,.3),inset 0 2px 4px rgba(255,255,255,1);
+}
+.sc-info{display:flex;flex-direction:column;gap:1px;}
+.sc-label{font-size:.55rem;letter-spacing:.15em;opacity:.5;text-transform:uppercase;}
+.sc-num{font-family:'Orbitron',monospace;font-size:1.5rem;font-weight:700;line-height:1;}
+.sc.active-turn .sc-num{text-shadow:0 0 12px rgba(0,255,200,.7);}
+.sc.ai-card.active-turn .sc-num{text-shadow:0 0 12px rgba(255,180,0,.7);}
+
+/* ── FOOTER ── */
+#footer{
+  position:fixed;bottom:0;left:0;right:0;z-index:10;
+  display:flex;justify-content:center;align-items:center;gap:10px;
+  padding:12px 16px 18px;
+  background:linear-gradient(0deg,rgba(5,8,20,0.97) 0%,transparent 100%);
+  pointer-events:none;
+}
+#statusText{
+  display:flex;align-items:center;gap:7px;
+  font-size:.8rem;letter-spacing:.07em;color:#88ccee;min-width:130px;
+}
+.mini-disc{width:15px;height:15px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.btn{
+  font-family:'Orbitron',monospace;font-size:.58rem;letter-spacing:.13em;
+  padding:8px 16px;border:1px solid rgba(0,255,200,.4);
+  background:rgba(0,255,200,.07);color:#00ffd0;border-radius:9px;
+  cursor:pointer;transition:all .2s;text-transform:uppercase;pointer-events:auto;
+}
+.btn:hover{background:rgba(0,255,200,.15);border-color:rgba(0,255,200,.7);box-shadow:0 0 18px rgba(0,255,200,.25);transform:translateY(-1px);}
+
+/* AI thinking indicator */
+#thinkingBar{
+  position:fixed;top:0;left:0;right:0;height:3px;z-index:30;
+  background:linear-gradient(90deg,#ff9900,#ffcc00,#ff9900);
+  background-size:200% 100%;
+  animation:slide 1.2s linear infinite;
+  display:none;
+}
+#thinkingBar.show{display:block;}
+@keyframes slide{0%{background-position:0% 0%}100%{background-position:200% 0%}}
+
+/* ── OVERLAY ── */
+#overlay{
+  position:fixed;inset:0;z-index:20;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;
+  background:rgba(5,8,20,.93);backdrop-filter:blur(20px);
+}
+#overlay.hidden{display:none;}
+.ov-title{
+  font-family:'Orbitron',monospace;font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;letter-spacing:.2em;
+  background:linear-gradient(120deg,#00ffd0,#00aaff,#cc88ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 20px rgba(0,200,255,.5));
+}
+.ov-discs{display:flex;gap:20px;}
+.ov-disc{width:48px;height:48px;border-radius:50%;}
+.ov-disc.b{
+  background:radial-gradient(circle at 35% 30%,#666 0%,#1a1a2a 50%,#07070f 100%);
+  border:2px solid rgba(120,120,200,.4);
+  box-shadow:0 4px 20px rgba(0,0,0,.8),inset 0 2px 4px rgba(255,255,255,.15);
+}
+.ov-disc.w{
+  background:radial-gradient(circle at 35% 28%,#fff 0%,#eeeeff 42%,#c4c4e0 100%);
+  border:2px solid rgba(210,210,255,.65);
+  box-shadow:0 4px 24px rgba(220,220,255,.5),0 0 36px rgba(255,255,200,.35),inset 0 2px 5px rgba(255,255,255,1);
+}
+
+/* Mode selection */
+.mode-section{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:320px;}
+.mode-label{font-size:.65rem;letter-spacing:.18em;opacity:.45;text-transform:uppercase;font-family:'Orbitron',monospace;}
+.mode-row{display:flex;gap:8px;justify-content:center;}
+.mode-btn{
+  font-family:'Orbitron',monospace;font-size:.6rem;letter-spacing:.12em;
+  padding:8px 16px;border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.05);color:rgba(255,255,255,.6);border-radius:8px;
+  cursor:pointer;transition:all .2s;text-transform:uppercase;
+}
+.mode-btn:hover,.mode-btn.sel{background:rgba(0,255,200,.12);border-color:rgba(0,255,200,.55);color:#00ffd0;}
+.mode-btn.sel{box-shadow:0 0 14px rgba(0,255,200,.2);}
+
+/* Difficulty */
+.diff-row{display:flex;gap:8px;justify-content:center;}
+.diff-btn{
+  font-family:'Orbitron',monospace;font-size:.58rem;letter-spacing:.1em;
+  padding:7px 14px;border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);border-radius:8px;
+  cursor:pointer;transition:all .2s;text-transform:uppercase;
+}
+.diff-btn:hover{background:rgba(255,165,0,.12);border-color:rgba(255,165,0,.5);color:#ffcc44;}
+.diff-btn.sel-easy{background:rgba(100,220,100,.1);border-color:rgba(100,220,100,.5);color:#88ee88;}
+.diff-btn.sel-medium{background:rgba(255,165,0,.1);border-color:rgba(255,165,0,.5);color:#ffcc44;}
+.diff-btn.sel-hard{background:rgba(255,60,60,.1);border-color:rgba(255,60,60,.5);color:#ff8888;}
+
+#diffRow{transition:opacity .2s;}
+#diffRow.hidden{opacity:0;pointer-events:none;}
+
+.ov-sub{font-size:.85rem;opacity:.55;text-align:center;line-height:1.9;color:#aaccee;max-width:290px;}
+.ov-hint{font-size:.64rem;opacity:.25;letter-spacing:.1em;color:#88aacc;}
+.start-btn{font-size:.78rem;padding:13px 42px;letter-spacing:.22em;}
+
+/* corners */
+.brk{position:fixed;width:32px;height:32px;border-color:rgba(0,255,200,.3);border-style:solid;z-index:5;}
+.brk.tl{top:12px;left:12px;border-width:2px 0 0 2px;}
+.brk.tr{top:12px;right:12px;border-width:2px 2px 0 0;}
+.brk.bl{bottom:12px;left:12px;border-width:0 0 2px 2px;}
+.brk.br{bottom:12px;right:12px;border-width:0 2px 2px 0;}
+</style>
+</head>
+<body>
+
+<div id="thinkingBar"></div>
+<div class="brk tl"></div><div class="brk tr"></div>
+<div class="brk bl"></div><div class="brk br"></div>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="logo">3D OTHELLO</div>
+  <div class="scores">
+    <div class="sc active-turn" id="scB">
+      <div class="sc-disc disc-b"></div>
+      <div class="sc-info">
+        <div class="sc-label" id="labelB">BLACK</div>
+        <div class="sc-num" id="numB">2</div>
+      </div>
+    </div>
+    <div class="sc" id="scW">
+      <div class="sc-disc disc-w"></div>
+      <div class="sc-info">
+        <div class="sc-label" id="labelW">WHITE</div>
+        <div class="sc-num" id="numW">2</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div id="footer">
+  <div id="statusText"><span class="mini-disc disc-b"></span>黒の番</div>
+  <button class="btn" onclick="showMenu()">MENU</button>
+  <button class="btn" onclick="resetGame()">NEW GAME</button>
+  <button class="btn" id="rotBtn" onclick="toggleRot()">ROTATE</button>
+</div>
+
+<!-- OVERLAY / MENU -->
+<div id="overlay">
+  <div class="ov-title" id="ovTitle">3D OTHELLO</div>
+  <div class="ov-discs"><div class="ov-disc b"></div><div class="ov-disc w"></div></div>
+
+  <div class="mode-section">
+    <div class="mode-label">GAME MODE</div>
+    <div class="mode-row">
+      <button class="mode-btn sel" id="modeHH" onclick="setMode('hh')">👥 対人</button>
+      <button class="mode-btn" id="modeHA" onclick="setMode('ha')">🤖 vs AI</button>
+    </div>
+  </div>
+
+  <div class="mode-section" id="diffRow" style="gap:8px;">
+    <div class="mode-label">AI 難易度</div>
+    <div class="diff-row">
+      <button class="diff-btn" id="dEasy"   onclick="setDiff('easy')">EASY</button>
+      <button class="diff-btn sel-medium" id="dMed" onclick="setDiff('medium')">NORMAL</button>
+      <button class="diff-btn" id="dHard"   onclick="setDiff('hard')">HARD</button>
+    </div>
+  </div>
+
+  <div class="ov-sub" id="ovSub">光るマスをタップして石を置こう。<br>ドラッグで視点を変えられます。</div>
+  <button class="btn start-btn" onclick="startGame()">GAME START</button>
+  <div class="ov-hint">DRAG · ROTATE &nbsp;|&nbsp; SCROLL · ZOOM</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ─── SCENE ───────────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0e1a);
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 200);
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+// ─── LIGHTS ──────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x334466, 6));
+const sun = new THREE.DirectionalLight(0xffffff, 4);
+sun.position.set(5,16,10); sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{near:.5,far:60,left:-14,right:14,top:14,bottom:-14});
+sun.shadow.radius=4; scene.add(sun);
+const warm = new THREE.DirectionalLight(0xfffde8,3.5); warm.position.set(-4,8,6); scene.add(warm);
+const cool = new THREE.DirectionalLight(0x6699ff,1.8); cool.position.set(6,4,-8); scene.add(cool);
+const boardPt = new THREE.PointLight(0x00ff99,1.5,18); boardPt.position.set(0,2,0); scene.add(boardPt);
+
+// ─── BOARD ───────────────────────────────────────────────
+const BS=8, C=1.1, BW=BS*C;
+const frame = new THREE.Mesh(
+  new THREE.BoxGeometry(BW+1.3,.55,BW+1.3),
+  new THREE.MeshStandardMaterial({color:0x0b1912,roughness:.4,metalness:.6})
+);
+frame.position.y=-.28; frame.receiveShadow=true; scene.add(frame);
+const surf = new THREE.Mesh(
+  new THREE.BoxGeometry(BW+.1,.09,BW+.1),
+  new THREE.MeshStandardMaterial({color:0x146040,roughness:.25,metalness:.1})
+);
+surf.receiveShadow=true; scene.add(surf);
+
+const gm=new THREE.LineBasicMaterial({color:0x1d7a48,transparent:true,opacity:.55});
+for(let i=0;i<=BS;i++){
+  const x=-BW/2+i*C;
+  const mkL=(ax,ay,az,bx,by,bz)=>scene.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(ax,ay,az),new THREE.Vector3(bx,by,bz)]),gm));
+  mkL(x,.055,-BW/2, x,.055,BW/2); mkL(-BW/2,.055,x, BW/2,.055,x);
+}
+const sdm=new THREE.MeshStandardMaterial({color:0x22bb66,roughness:.3});
+[[2,2],[2,6],[6,2],[6,6]].forEach(([r,c])=>{
+  const d=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.03,16),sdm);
+  d.position.set(-BW/2+(c+.5)*C,.057,-BW/2+(r+.5)*C); scene.add(d);
+});
+const em=new THREE.MeshStandardMaterial({color:0x00ff88,emissive:0x00ff88,emissiveIntensity:1.2});
+const EO=BW/2+.07;
+[EO,-EO].forEach(o=>{
+  const h=new THREE.Mesh(new THREE.BoxGeometry(BW+.12,.012,.04),em); h.position.set(0,.056,o); scene.add(h);
+  const v=new THREE.Mesh(new THREE.BoxGeometry(.04,.012,BW+.12),em); v.position.set(o,.056,0); scene.add(v);
+});
+
+// ─── CELL PLANES ─────────────────────────────────────────
+const cells=[], cellGeo=new THREE.PlaneGeometry(C*.86,C*.86);
+for(let r=0;r<BS;r++){
+  cells[r]=[];
+  for(let c=0;c<BS;c++){
+    const m=new THREE.MeshStandardMaterial({color:0x00ffaa,emissive:0x00ffaa,emissiveIntensity:1.5,transparent:true,opacity:0,depthWrite:false,roughness:1});
+    const pl=new THREE.Mesh(cellGeo,m); pl.rotation.x=-Math.PI/2;
+    pl.position.set(-BW/2+(c+.5)*C,.065,-BW/2+(r+.5)*C);
+    pl.userData={r,c}; scene.add(pl); cells[r][c]=pl;
+  }
+}
+
+// ─── DISC BUILD ──────────────────────────────────────────
+const discGeo=new THREE.CylinderGeometry(.44,.44,.13,48);
+const ringGeo=new THREE.RingGeometry(.22,.37,48);
+const mkBMat=()=>new THREE.MeshStandardMaterial({color:0x0d0d1c,roughness:.08,metalness:.95});
+const mkWMat=()=>new THREE.MeshStandardMaterial({color:0xf8f8ff,emissive:0xfff8e8,emissiveIntensity:.25,roughness:.05,metalness:.0});
+const mkBRing=()=>new THREE.MeshStandardMaterial({color:0x3355dd,roughness:.2,metalness:1,transparent:true,opacity:.4,side:THREE.DoubleSide});
+const mkWRing=()=>new THREE.MeshStandardMaterial({color:0xffffee,roughness:.1,metalness:.0,emissive:0xffffcc,emissiveIntensity:.35,transparent:true,opacity:.38,side:THREE.DoubleSide});
+
+const discMeshes=Array.from({length:8},()=>Array(8).fill(null));
+function pos3D(r,c,y=.065){return new THREE.Vector3(-BW/2+(c+.5)*C,y,-BW/2+(r+.5)*C);}
+
+function buildDisc(color){
+  const g=new THREE.Group();
+  g.add(Object.assign(new THREE.Mesh(discGeo,color===1?mkBMat():mkWMat()),{castShadow:true,receiveShadow:true}));
+  const ring=new THREE.Mesh(ringGeo,color===1?mkBRing():mkWRing());
+  ring.rotation.x=-Math.PI/2; ring.position.y=.066; g.add(ring);
+  if(color===-1){ const wl=new THREE.PointLight(0xfffff8,2.5,2); wl.position.set(0,.6,0); g.add(wl); }
+  return g;
+}
+function placeDisc(r,c,color,animate=false){
+  if(discMeshes[r][c]) scene.remove(discMeshes[r][c]);
+  const g=buildDisc(color), p=pos3D(r,c);
+  g.position.copy(animate?pos3D(r,c,5):p);
+  if(animate) g.scale.setScalar(.05);
+  scene.add(g); discMeshes[r][c]=g; board[r][c]=color;
+  if(animate){
+    const t0=performance.now(),dur=280,sy=p.y+5;
+    const drop=now=>{const t=Math.min((now-t0)/dur,1),e=1-Math.pow(1-t,3);
+      g.position.y=sy+(p.y-sy)*e; g.scale.setScalar(.05+.95*e);
+      if(t<1)requestAnimationFrame(drop); else{g.position.copy(p);g.scale.setScalar(1);}};
+    requestAnimationFrame(drop);
+  }
+}
+const flipping=new Set();
+function flipDisc(r,c,newColor,delay=0){
+  const g=discMeshes[r][c]; if(!g)return; flipping.add(g);
+  const p=pos3D(r,c),t0=performance.now()+delay,dur=400; let done=false;
+  const run=now=>{
+    if(now<t0){requestAnimationFrame(run);return;}
+    const t=Math.min((now-t0)/dur,1),a=t*Math.PI;
+    g.rotation.z=a; g.position.y=p.y+Math.sin(a)*.5;
+    if(!done&&t>=.5){done=true;while(g.children.length)g.remove(g.children[0]);buildDisc(newColor).children.forEach(ch=>g.add(ch));board[r][c]=newColor;g.rotation.z=a-Math.PI;}
+    if(t<1)requestAnimationFrame(run);
+    else{g.rotation.z=0;g.position.copy(p);flipping.delete(g);}
+  };
+  requestAnimationFrame(run);
+}
+
+// ─── GAME LOGIC ──────────────────────────────────────────
+let board=[],turn=1,active=false,valid=[];
+const DIRS=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+
+function initBoard(){board=Array.from({length:8},()=>Array(8).fill(0));board[3][3]=-1;board[3][4]=1;board[4][3]=1;board[4][4]=-1;}
+
+function flips(b,r,c,p){
+  if(b[r][c]!==0)return[];
+  const out=[];
+  for(const[dr,dc]of DIRS){
+    const ln=[];let nr=r+dr,nc=c+dc;
+    while(nr>=0&&nr<8&&nc>=0&&nc<8&&b[nr][nc]===-p){ln.push([nr,nc]);nr+=dr;nc+=dc;}
+    if(ln.length&&nr>=0&&nr<8&&nc>=0&&nc<8&&b[nr][nc]===p)out.push(...ln);
+  }
+  return out;
+}
+function validMoves(b,p){
+  const mv=[];
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(b[r][c]===0&&flips(b,r,c,p).length>0)mv.push([r,c]);
+  return mv;
+}
+function scores(){let b=0,w=0;for(let r=0;r<8;r++)for(let c=0;c<8;c++){if(board[r][c]===1)b++;if(board[r][c]===-1)w++;}return{b,w};}
+
+// ─── GAME MODE & AI ──────────────────────────────────────
+let gameMode='hh';   // 'hh' = human vs human,  'ha' = human vs AI
+let aiDiff='medium'; // 'easy' | 'medium' | 'hard'
+let aiColor=-1;      // AI plays white
+
+// Positional weight table (classic Othello strategy)
+const WEIGHTS=[
+  [120,-20, 20,  5,  5, 20,-20,120],
+  [-20,-40, -5, -5, -5, -5,-40,-20],
+  [ 20, -5, 15,  3,  3, 15, -5, 20],
+  [  5, -5,  3,  3,  3,  3, -5,  5],
+  [  5, -5,  3,  3,  3,  3, -5,  5],
+  [ 20, -5, 15,  3,  3, 15, -5, 20],
+  [-20,-40, -5, -5, -5, -5,-40,-20],
+  [120,-20, 20,  5,  5, 20,-20,120],
+];
+
+function evalBoard(b, p){
+  let score=0;
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++) if(b[r][c]===p) score+=WEIGHTS[r][c]; else if(b[r][c]===-p) score-=WEIGHTS[r][c];
+  // Mobility bonus
+  const myMoves=validMoves(b,p).length, opMoves=validMoves(b,-p).length;
+  score+=(myMoves-opMoves)*5;
+  return score;
+}
+
+function applyMove(b, r, c, p){
+  const nb=b.map(row=>[...row]);
+  nb[r][c]=p;
+  for(const[dr,dc]of DIRS){
+    const ln=[];let nr=r+dr,nc=c+dc;
+    while(nr>=0&&nr<8&&nc>=0&&nc<8&&nb[nr][nc]===-p){ln.push([nr,nc]);nr+=dr;nc+=dc;}
+    if(ln.length&&nr>=0&&nr<8&&nc>=0&&nc<8&&nb[nr][nc]===p) ln.forEach(([fr,fc])=>nb[fr][fc]=p);
+  }
+  return nb;
+}
+
+function minimax(b, depth, alpha, beta, maximizing, p){
+  const moves=validMoves(b,p);
+  if(depth===0||moves.length===0) return evalBoard(b, aiColor);
+  if(maximizing){
+    let best=-Infinity;
+    for(const[r,c]of moves){
+      const nb=applyMove(b,r,c,p);
+      best=Math.max(best, minimax(nb,depth-1,alpha,beta,false,-p));
+      alpha=Math.max(alpha,best);
+      if(beta<=alpha) break;
+    }
+    return best;
+  } else {
+    let best=Infinity;
+    for(const[r,c]of moves){
+      const nb=applyMove(b,r,c,p);
+      best=Math.min(best, minimax(nb,depth-1,alpha,beta,true,-p));
+      beta=Math.min(beta,best);
+      if(beta<=alpha) break;
+    }
+    return best;
+  }
+}
+
+function getAIMove(){
+  const moves=validMoves(board,aiColor);
+  if(!moves.length) return null;
+  if(aiDiff==='easy'){
+    // Random among somewhat valid moves, prefer non-corners
+    const shuffle=arr=>{for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;};
+    return shuffle(moves)[0];
+  }
+  const depth = aiDiff==='medium' ? 3 : 6;
+  let best=-Infinity, bestMove=moves[0];
+  for(const[r,c]of moves){
+    const nb=applyMove(board,r,c,aiColor);
+    const score=minimax(nb,depth-1,-Infinity,Infinity,false,-aiColor);
+    if(score>best){best=score;bestMove=[r,c];}
+  }
+  return bestMove;
+}
+
+// ─── UI HELPERS ──────────────────────────────────────────
+function setMode(m){
+  gameMode=m;
+  document.getElementById('modeHH').classList.toggle('sel',m==='hh');
+  document.getElementById('modeHA').classList.toggle('sel',m==='ha');
+  document.getElementById('diffRow').classList.toggle('hidden',m==='hh');
+}
+function setDiff(d){
+  aiDiff=d;
+  ['easy','medium','hard'].forEach(x=>{
+    const b=document.getElementById(x==='easy'?'dEasy':x==='medium'?'dMed':'dHard');
+    b.className='diff-btn'+(d===x?` sel-${x}`:'');
+  });
+}
+setMode('hh'); setDiff('medium');
+
+function showMenu(){
+  const ov=document.getElementById('overlay');
+  ov.querySelector('.ov-title').textContent='3D OTHELLO';
+  ov.querySelector('.ov-sub').textContent='光るマスをタップして石を置こう。\nドラッグで視点を変えられます。';
+  ov.querySelector('.start-btn').textContent='GAME START';
+  ov.classList.remove('hidden');
+}
+
+function refreshUI(){
+  const{b,w}=scores();
+  document.getElementById('numB').textContent=b;
+  document.getElementById('numW').textContent=w;
+  document.getElementById('scB').classList.toggle('active-turn',turn===1);
+  document.getElementById('scW').classList.toggle('active-turn',turn===-1);
+
+  // AI badge
+  const scW=document.getElementById('scW'), scB=document.getElementById('scB');
+  const badgeW=scW.querySelector('.ai-badge'), badgeB=scB.querySelector('.ai-badge');
+  if(badgeW) badgeW.remove(); if(badgeB) badgeB.remove();
+  if(gameMode==='ha'){
+    const badge=document.createElement('div'); badge.className='ai-badge'; badge.textContent='AI';
+    (aiColor===-1?scW:scB).appendChild(badge);
+    (aiColor===-1?scW:scB).classList.add('ai-card');
+    (aiColor===1?scW:scB).classList.remove('ai-card');
+  } else {
+    scW.classList.remove('ai-card'); scB.classList.remove('ai-card');
+  }
+  document.getElementById('labelB').textContent='BLACK';
+  document.getElementById('labelW').textContent='WHITE';
+
+  const st=document.getElementById('statusText');
+  const isAITurn = gameMode==='ha' && turn===aiColor;
+  if(isAITurn){
+    st.innerHTML=`<span class="mini-disc ${aiColor===-1?'disc-w':'disc-b'}"></span>🤖 AI思考中…`;
+  } else {
+    st.innerHTML=turn===1
+      ?`<span class="mini-disc disc-b"></span>黒の番`
+      :`<span class="mini-disc disc-w"></span>白の番`;
+  }
+}
+
+function refreshHints(){
+  valid=validMoves(board,turn);
+  const isAITurn=gameMode==='ha'&&turn===aiColor;
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++)
+    cells[r][c].material.opacity=(!isAITurn&&valid.some(([vr,vc])=>vr===r&&vc===c))?0.3:0;
+}
+
+function afterMove(){
+  turn=-turn;
+  let nxt=validMoves(board,turn);
+  if(!nxt.length){
+    turn=-turn; nxt=validMoves(board,turn);
+    if(!nxt.length){gameOver();return;}
+    document.getElementById('statusText').innerHTML='⚠️ パス！';
+    setTimeout(()=>{refreshUI();refreshHints();scheduleAI();},900);
+    return;
+  }
+  refreshUI(); refreshHints(); scheduleAI();
+}
+
+function doMove(r,c){
+  if(!active||flipping.size>0)return;
+  const fl=flips(board,r,c,turn); if(!fl.length)return;
+  placeDisc(r,c,turn,true);
+  fl.forEach(([fr,fc],i)=>flipDisc(fr,fc,turn,i*85+240));
+  setTimeout(afterMove, fl.length*85+520);
+}
+
+// ─── AI SCHEDULING ───────────────────────────────────────
+function scheduleAI(){
+  if(!active||gameMode!=='ha'||turn!==aiColor)return;
+  document.getElementById('thinkingBar').classList.add('show');
+  const delay=aiDiff==='easy'?400:aiDiff==='medium'?700:1200;
+  setTimeout(()=>{
+    document.getElementById('thinkingBar').classList.remove('show');
+    const mv=getAIMove();
+    if(mv) doMove(mv[0],mv[1]);
+  }, delay);
+}
+
+function gameOver(){
+  active=false;
+  const{b,w}=scores();
+  const ov=document.getElementById('overlay');
+  ov.classList.remove('hidden');
+  ov.querySelector('.ov-title').textContent='GAME OVER';
+  let result;
+  if(gameMode==='ha'){
+    result=b>w?(aiColor===1?'🤖 AIの勝ち！':'🎉 あなたの勝ち！'):
+           w>b?(aiColor===-1?'🤖 AIの勝ち！':'🎉 あなたの勝ち！'):
+           '🤝 引き分け！';
+  } else {
+    result=b>w?`⬛ 黒の勝ち！ ${b} vs ${w}`:w>b?`⬜ 白の勝ち！ ${w} vs ${b}`:`🤝 引き分け！`;
+  }
+  ov.querySelector('.ov-sub').textContent=`${result}\n黒: ${b}  白: ${w}`;
+  ov.querySelector('.start-btn').textContent='PLAY AGAIN';
+}
+
+function resetGame(){
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    if(discMeshes[r][c]){scene.remove(discMeshes[r][c]);discMeshes[r][c]=null;}
+  }
+  flipping.clear(); initBoard(); turn=1;
+  [[3,3,-1],[3,4,1],[4,3,1],[4,4,-1]].forEach(([r,c,col])=>placeDisc(r,c,col));
+  refreshHints(); refreshUI(); active=true;
+  scheduleAI(); // in case AI goes first
+}
+
+function startGame(){
+  document.getElementById('overlay').classList.add('hidden');
+  resetGame();
+}
+
+// ─── RAYCASTING ──────────────────────────────────────────
+const RC=new THREE.Raycaster(), mouse=new THREE.Vector2();
+let hovered=null, dragging=false, dragOrigin={x:0,y:0}, prevM={x:0,y:0};
+const flatCells=()=>cells.flat();
+
+function onMove(x,y){
+  if(!active)return;
+  const isAITurn=gameMode==='ha'&&turn===aiColor;
+  if(isAITurn)return;
+  const rect=renderer.domElement.getBoundingClientRect();
+  mouse.set(((x-rect.left)/rect.width)*2-1,-((y-rect.top)/rect.height)*2+1);
+  RC.setFromCamera(mouse,camera);
+  const hits=RC.intersectObjects(flatCells());
+  if(hits.length){
+    const{r,c}=hits[0].object.userData;
+    const isV=valid.some(([vr,vc])=>vr===r&&vc===c);
+    renderer.domElement.style.cursor=isV?'pointer':'default';
+    if(isV){
+      if(hovered!==hits[0].object){if(hovered)hovered.material.opacity=.3;hovered=hits[0].object;hovered.material.opacity=.65;}
+    } else {if(hovered){hovered.material.opacity=.3;hovered=null;}}
+  } else {renderer.domElement.style.cursor='default';if(hovered){hovered.material.opacity=.3;hovered=null;}}
+}
+function onDown(x,y){dragging=false;dragOrigin={x,y};prevM={x,y};}
+function onDrag(x,y){
+  if(Math.hypot(x-dragOrigin.x,y-dragOrigin.y)>7)dragging=true;
+  sph.t-=(x-prevM.x)*.009; sph.p=Math.max(.18,Math.min(1.38,sph.p+(y-prevM.y)*.009));
+  prevM={x,y}; updateCam();
+}
+function onUp(x,y){
+  if(!active||dragging||flipping.size>0)return;
+  const isAITurn=gameMode==='ha'&&turn===aiColor; if(isAITurn)return;
+  const rect=renderer.domElement.getBoundingClientRect();
+  mouse.set(((x-rect.left)/rect.width)*2-1,-((y-rect.top)/rect.height)*2+1);
+  RC.setFromCamera(mouse,camera);
+  const hits=RC.intersectObjects(flatCells());
+  if(hits.length){const{r,c}=hits[0].object.userData;doMove(r,c);}
+}
+const el=renderer.domElement;
+el.addEventListener('mousedown',e=>onDown(e.clientX,e.clientY));
+el.addEventListener('mousemove',e=>{onMove(e.clientX,e.clientY);if(e.buttons===1)onDrag(e.clientX,e.clientY);});
+el.addEventListener('mouseup',e=>onUp(e.clientX,e.clientY));
+el.addEventListener('wheel',e=>{sph.r=Math.max(8,Math.min(28,sph.r+e.deltaY*.03));updateCam();},{passive:true});
+el.addEventListener('touchstart',e=>{const t=e.touches[0];onDown(t.clientX,t.clientY);},{passive:true});
+el.addEventListener('touchmove',e=>{const t=e.touches[0];onDrag(t.clientX,t.clientY);},{passive:true});
+el.addEventListener('touchend',e=>{const t=e.changedTouches[0];onUp(t.clientX,t.clientY);});
+
+// ─── CAMERA ──────────────────────────────────────────────
+const sph={t:.3,p:.82,r:16};
+function updateCam(){
+  camera.position.set(sph.r*Math.sin(sph.p)*Math.sin(sph.t),sph.r*Math.cos(sph.p),sph.r*Math.sin(sph.p)*Math.cos(sph.t));
+  camera.lookAt(0,0,0);
+}
+updateCam();
+let autoRot=false;
+function toggleRot(){
+  autoRot=!autoRot;
+  const b=document.getElementById('rotBtn');
+  b.style.borderColor=autoRot?'rgba(0,255,200,.75)':'';
+  b.style.boxShadow=autoRot?'0 0 18px rgba(0,255,200,.35)':'';
+}
+
+// ─── RENDER ──────────────────────────────────────────────
+let clk=0;
+(function loop(){
+  requestAnimationFrame(loop); clk+=.014;
+  if(autoRot){sph.t+=.005;updateCam();}
+  valid.forEach(([r,c])=>{if(cells[r][c]!==hovered)cells[r][c].material.opacity=.17+.13*Math.sin(clk*2.2+r*.55+c*.77);});
+  boardPt.intensity=1.2+.4*Math.sin(clk*.7);
+  renderer.render(scene,camera);
+})();
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
