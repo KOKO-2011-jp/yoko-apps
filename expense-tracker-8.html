@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出費メモ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #e8f0fe;
+    --surface: #ffffff;
+    --surface2: #f0f5ff;
+    --blue: #1a56db;
+    --blue-dark: #0f3ab8;
+    --blue-mid: #3b7df8;
+    --blue-light: #93b8fc;
+    --cyan: #06b6d4;
+    --text: #0d1b3e;
+    --muted: #6b7fa3;
+    --border: rgba(26,86,219,0.13);
+    --shadow: 0 4px 24px rgba(26,86,219,0.10);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: -120px; left: -80px;
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, rgba(59,125,248,0.22) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -100px; right: -80px;
+    width: 350px; height: 350px;
+    background: radial-gradient(circle, rgba(6,182,212,0.18) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .container {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 28px 16px 120px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    padding: 20px 0 24px;
+  }
+
+  header h1 {
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    color: var(--blue-dark);
+  }
+
+  header h1 span {
+    color: var(--blue-mid);
+    position: relative;
+  }
+
+  header h1 span::after {
+    content: '';
+    position: absolute;
+    left: 0; bottom: -2px;
+    width: 100%; height: 3px;
+    background: linear-gradient(90deg, var(--blue-mid), var(--cyan));
+    border-radius: 2px;
+  }
+
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .month-nav button {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--blue);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 5px 13px;
+    border-radius: 50px;
+    font-weight: 700;
+    transition: background 0.2s, color 0.2s;
+    box-shadow: var(--shadow);
+  }
+
+  .month-nav button:hover { background: var(--blue); color: #fff; }
+
+  #monthLabel {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.88rem;
+    color: var(--blue-dark);
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+
+  .total-card {
+    background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue-mid) 60%, var(--cyan) 100%);
+    border-radius: 24px;
+    padding: 28px 28px 24px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(26,86,219,0.28);
+  }
+
+  .total-card::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 50%;
+  }
+
+  .total-card::after {
+    content: '¥';
+    position: absolute;
+    right: 16px; bottom: -18px;
+    font-size: 7rem;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    color: rgba(255,255,255,0.08);
+    line-height: 1;
+  }
+
+  .total-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+
+  .total-amount {
+    font-family: 'Space Mono', monospace;
+    font-size: 3rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .total-count {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.65);
+    margin-top: 8px;
+  }
+
+  .category-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .cat-chip {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 11px 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    box-shadow: var(--shadow);
+  }
+
+  .cat-chip .emoji { font-size: 1.1rem; }
+  .cat-chip .cat-name { color: var(--muted); flex: 1; font-size: 0.78rem; }
+  .cat-chip .cat-amt {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--blue);
+    font-weight: 700;
+  }
+
+  .input-section {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 22px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .section-title {
+    font-size: 0.78rem;
+    letter-spacing: 0.13em;
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .input-field {
+    flex: 1;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 11px;
+    padding: 11px 13px;
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.92rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .input-field:focus {
+    border-color: var(--blue-mid);
+    box-shadow: 0 0 0 3px rgba(59,125,248,0.12);
+  }
+
+  .input-field::placeholder { color: var(--blue-light); }
+
+  .amount-field {
+    font-family: 'Space Mono', monospace;
+    font-size: 1rem;
+    width: 120px;
+    flex: none;
+  }
+
+  .cat-select { appearance: none; cursor: pointer; }
+
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .btn-add {
+    flex: 1;
+    background: linear-gradient(90deg, var(--blue) 0%, var(--blue-mid) 100%);
+    border: none;
+    border-radius: 11px;
+    color: white;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    padding: 13px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    box-shadow: 0 4px 16px rgba(26,86,219,0.25);
+    letter-spacing: 0.05em;
+  }
+
+  .btn-add:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-add:active { transform: translateY(0); }
+
+  .btn-voice {
+    width: 50px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 11px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-voice:hover { background: var(--blue-light); border-color: var(--blue-mid); }
+
+  .btn-voice.recording {
+    background: var(--cyan);
+    border-color: var(--cyan);
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(6,182,212,0.5); }
+    50% { transform: scale(1.07); box-shadow: 0 0 0 8px rgba(6,182,212,0); }
+  }
+
+  .voice-hint {
+    font-size: 0.73rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 8px;
+    min-height: 18px;
+    transition: color 0.2s;
+  }
+
+  .voice-hint.active { color: var(--cyan); font-weight: 700; }
+
+  .btn-fixed {
+    width: 100%;
+    margin-top: 10px;
+    background: var(--surface2);
+    border: 1.5px dashed var(--blue-light);
+    border-radius: 11px;
+    color: var(--blue);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 12px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    letter-spacing: 0.03em;
+  }
+
+  .btn-fixed:hover { background: #dce7fd; border-color: var(--blue-mid); }
+  .btn-fixed:active { transform: scale(0.98); }
+
+  .fixed-hint {
+    font-size: 0.73rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 6px;
+    min-height: 16px;
+  }
+
+  .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .list-header h2 {
+    font-size: 0.78rem;
+    letter-spacing: 0.13em;
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .btn-clear-all {
+    font-size: 0.73rem;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 8px;
+    transition: color 0.2s, background 0.2s;
+  }
+
+  .btn-clear-all:hover { color: var(--blue); background: rgba(26,86,219,0.08); }
+
+  .expense-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .expense-item {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 13px 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow);
+    animation: slideIn 0.22s ease;
+    transition: border-color 0.2s;
+  }
+
+  .expense-item:hover { border-color: var(--blue-light); }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-7px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .item-emoji {
+    font-size: 1.4rem;
+    width: 40px; height: 40px;
+    background: var(--surface2);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .item-info { flex: 1; min-width: 0; }
+
+  .item-name {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .item-meta {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 2px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .item-amount {
+    font-family: 'Space Mono', monospace;
+    font-size: 1rem;
+    color: var(--blue);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .btn-delete {
+    background: none;
+    border: none;
+    color: var(--blue-light);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: color 0.2s, background 0.2s;
+    line-height: 1;
+  }
+
+  .btn-delete:hover { color: #fff; background: var(--blue-mid); }
+
+  .empty-state {
+    text-align: center;
+    color: var(--muted);
+    padding: 40px 0;
+    font-size: 0.9rem;
+  }
+
+  .empty-state .big { font-size: 2.8rem; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>出費<span>メモ</span></h1>
+    <div class="month-nav">
+      <button id="prevMonth">‹</button>
+      <span id="monthLabel"></span>
+      <button id="nextMonth">›</button>
+    </div>
+  </header>
+
+  <div class="total-card">
+    <div class="total-label">Monthly Total &nbsp;/&nbsp; 今月の合計</div>
+    <div class="total-amount">¥<span id="totalAmount">0</span></div>
+    <div class="total-count" id="totalCount">0件</div>
+  </div>
+
+  <div class="category-summary" id="catSummary"></div>
+
+  <div class="input-section">
+    <div class="section-title">✏️ 出費を追加</div>
+    <div class="input-row">
+      <input class="input-field" id="nameInput" type="text" placeholder="内容（例：コーヒー）">
+      <input class="input-field amount-field" id="amountInput" type="number" placeholder="金額" min="0">
+    </div>
+    <div class="input-row">
+      <select class="input-field cat-select" id="catInput">
+        <option value="🍽️ 食費">🍽️ 食費</option>
+        <option value="☕ カフェ・飲食代">☕ カフェ・飲食代</option>
+        <option value="🚃 交通費">🚃 交通費</option>
+        <option value="🚕 タクシー代">🚕 タクシー代</option>
+        <option value="🛍️ 買い物">🛍️ 買い物</option>
+        <option value="🎮 娯楽">🎮 娯楽</option>
+        <option value="💊 医療">💊 医療</option>
+        <option value="🏠 住居">🏠 住居</option>
+        <option value="🎁 その他">🎁 その他</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="btn-add" id="addBtn">追加する</button>
+      <button class="btn-voice" id="voiceBtn" title="音声入力">🎤</button>
+    </div>
+    <div class="voice-hint" id="voiceHint">🎤 ボタンで音声入力（例：「コーヒー 350円」）</div>
+    <button class="btn-fixed" id="fixedBtn">🏠 今月の固定費を一括登録</button>
+    <div class="fixed-hint" id="fixedHint"></div>
+  </div>
+
+  <div class="list-header">
+    <h2>📋 履歴</h2>
+    <button class="btn-clear-all" id="clearAllBtn">全削除</button>
+  </div>
+
+  <div class="expense-list" id="expenseList">
+    <div class="empty-state"><div class="big">💙</div>まだ記録がありません</div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'expense-tracker-v1';
+let currentDate = new Date();
+let currentYear = currentDate.getFullYear();
+let currentMonth = currentDate.getMonth();
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function save(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+let allExpenses = load();
+
+function getFiltered() {
+  return allExpenses.filter(e => {
+    const d = new Date(e.date);
+    return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+  });
+}
+
+function render() {
+  const expenses = getFiltered();
+  const total = expenses.reduce((s, e) => s + e.amount, 0);
+  document.getElementById('totalAmount').textContent = total.toLocaleString();
+  document.getElementById('totalCount').textContent = `${expenses.length}件の出費`;
+  document.getElementById('monthLabel').textContent =
+    `${currentYear}年 ${String(currentMonth+1).padStart(2,'0')}月`;
+
+  const catMap = {};
+  expenses.forEach(e => { catMap[e.category] = (catMap[e.category] || 0) + e.amount; });
+  const catSummary = document.getElementById('catSummary');
+  const entries = Object.entries(catMap).sort((a,b) => b[1]-a[1]).slice(0,6);
+  catSummary.innerHTML = entries.map(([cat, amt]) => {
+    const [emoji, ...rest] = cat.split(' ');
+    return `<div class="cat-chip">
+      <span class="emoji">${emoji}</span>
+      <span class="cat-name">${rest.join(' ')}</span>
+      <span class="cat-amt">¥${amt.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+
+  const list = document.getElementById('expenseList');
+  if (expenses.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="big">💙</div>まだ記録がありません</div>';
+    return;
+  }
+  const sorted = [...expenses].reverse();
+  list.innerHTML = sorted.map(e => {
+    const [emoji] = e.category.split(' ');
+    const d = new Date(e.date);
+    const dateStr = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `<div class="expense-item">
+      <div class="item-emoji">${emoji}</div>
+      <div class="item-info">
+        <div class="item-name">${e.name}</div>
+        <div class="item-meta"><span>${e.category.split(' ').slice(1).join(' ')}</span><span>${dateStr}</span></div>
+      </div>
+      <span class="item-amount">¥${e.amount.toLocaleString()}</span>
+      <button class="btn-delete" onclick="deleteExpense('${e.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function addExpense(name, amount, category) {
+  if (!name || !amount || amount <= 0) return false;
+  allExpenses.push({ id: Date.now().toString(), name, amount: parseInt(amount), category, date: new Date().toISOString() });
+  save(allExpenses); render(); return true;
+}
+
+function deleteExpense(id) {
+  allExpenses = allExpenses.filter(e => e.id !== id);
+  save(allExpenses); render();
+}
+
+document.getElementById('clearAllBtn').addEventListener('click', () => {
+  const filtered = getFiltered();
+  if (!filtered.length) return;
+  if (!confirm(`${currentMonth+1}月の${filtered.length}件を全削除しますか？`)) return;
+  const ids = new Set(filtered.map(e => e.id));
+  allExpenses = allExpenses.filter(e => !ids.has(e.id));
+  save(allExpenses); render();
+});
+
+document.getElementById('addBtn').addEventListener('click', () => {
+  const name = document.getElementById('nameInput').value.trim();
+  const amount = document.getElementById('amountInput').value;
+  const category = document.getElementById('catInput').value;
+  if (addExpense(name, amount, category)) {
+    document.getElementById('nameInput').value = '';
+    document.getElementById('amountInput').value = '';
+    document.getElementById('nameInput').focus();
+  }
+});
+
+['nameInput','amountInput'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('addBtn').click();
+  });
+});
+
+document.getElementById('prevMonth').addEventListener('click', () => {
+  currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } render();
+});
+document.getElementById('nextMonth').addEventListener('click', () => {
+  currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } render();
+});
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const voiceBtn = document.getElementById('voiceBtn');
+const voiceHint = document.getElementById('voiceHint');
+
+if (SpeechRecognition) {
+  const recog = new SpeechRecognition();
+  recog.lang = 'ja-JP';
+  recog.interimResults = false;
+  let recording = false;
+
+  voiceBtn.addEventListener('click', () => { recording ? recog.stop() : recog.start(); });
+
+  recog.onstart = () => {
+    recording = true;
+    voiceBtn.classList.add('recording');
+    voiceBtn.textContent = '⏹';
+    voiceHint.textContent = '🔵 聞いています...（例：「コーヒー 350円」）';
+    voiceHint.classList.add('active');
+  };
+
+  recog.onend = () => {
+    recording = false;
+    voiceBtn.classList.remove('recording');
+    voiceBtn.textContent = '🎤';
+    voiceHint.classList.remove('active');
+    voiceHint.textContent = '🎤 ボタンで音声入力（例：「コーヒー 350円」）';
+  };
+
+  recog.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    const amountMatch = transcript.match(/(\d[\d,]*)\s*円/);
+    let name = transcript.replace(/(\d[\d,]*)\s*円/, '').replace(/[でをのに]/, '').trim();
+    if (!name) name = transcript;
+
+    if (amountMatch) {
+      const amount = parseInt(amountMatch[1].replace(/,/g, ''));
+      document.getElementById('nameInput').value = name || '不明';
+      document.getElementById('amountInput').value = amount;
+      const catKeywords = {
+        '🍽️ 食費': ['コーヒー','ランチ','夕食','朝食','食事','カフェ','レストラン','弁当','飲み','居酒屋','スーパー','コンビニ','ご飯','食料','食品','ラーメン','パン'],
+        '🚃 交通費': ['電車','バス','タクシー','新幹線','切符','交通','地下鉄','乗車'],
+        '🛍️ 買い物': ['洋服','服','靴','雑貨','ショッピング','アマゾン'],
+        '🎮 娯楽': ['映画','ゲーム','本','漫画','音楽','ライブ','趣味'],
+        '💊 医療': ['薬','病院','クリニック','医療','診察'],
+      };
+      const select = document.getElementById('catInput');
+      for (const [cat, words] of Object.entries(catKeywords)) {
+        if (words.some(w => (name + transcript).includes(w))) { select.value = cat; break; }
+      }
+      voiceHint.textContent = `✅ 「${name}」¥${amount.toLocaleString()} — 確認して追加！`;
+    } else {
+      document.getElementById('nameInput').value = transcript;
+      voiceHint.textContent = `金額が聞き取れませんでした。手動で入力してください。`;
+    }
+  };
+
+  recog.onerror = (e) => {
+    voiceHint.textContent = `エラー: ${e.error}`;
+    voiceHint.classList.remove('active');
+  };
+} else {
+  voiceBtn.style.opacity = '0.35';
+  voiceBtn.title = '音声入力は未対応のブラウザです';
+  voiceHint.textContent = '※ このブラウザでは音声入力に対応していません（Chrome推奨）';
+}
+
+render();
+
+// 固定費
+const FIXED_EXPENSES = [
+  { name: '住宅ローン', amount: 87130, category: '🏠 住居' },
+  { name: '管理費',     amount: 30000, category: '🏠 住居' },
+  { name: '実家振込',   amount: 10000, category: '🎁 その他' },
+  { name: 'ジム',       amount: 16500, category: '🎮 娯楽' },
+  { name: 'ピアノ',     amount: 16000, category: '🎮 娯楽' },
+];
+
+document.getElementById('fixedBtn').addEventListener('click', () => {
+  const firstDay = new Date(currentYear, currentMonth, 1).toISOString();
+  const filtered = getFiltered();
+  const alreadyRegistered = FIXED_EXPENSES.every(f =>
+    filtered.some(e => e.name === f.name && e.amount === f.amount)
+  );
+  if (alreadyRegistered) {
+    document.getElementById('fixedHint').textContent = '⚠️ 今月はすでに登録済みです';
+    return;
+  }
+  FIXED_EXPENSES.forEach(f => {
+    allExpenses.push({
+      id: Date.now().toString() + Math.random(),
+      name: f.name,
+      amount: f.amount,
+      category: f.category,
+      date: firstDay
+    });
+  });
+  save(allExpenses);
+  render();
+  const total = FIXED_EXPENSES.reduce((s, f) => s + f.amount, 0);
+  document.getElementById('fixedHint').textContent = `✅ 固定費 ¥${total.toLocaleString()} を登録しました！`;
+  setTimeout(() => { document.getElementById('fixedHint').textContent = ''; }, 3000);
+});
+
+</body>
+</html>
