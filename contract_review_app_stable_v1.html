@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>契約書レビュー支援アプリ 安定版 v1</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #1f2430;
+      --muted: #667085;
+      --line: #e5e7eb;
+      --accent: #5b6cff;
+      --accent-soft: #eef1ff;
+      --danger: #d92d20;
+      --danger-soft: #feeceb;
+      --warn: #b54708;
+      --warn-soft: #fff3e6;
+      --ok: #027a48;
+      --ok-soft: #e8fff4;
+      --info: #155eef;
+      --info-soft: #eef4ff;
+      --shadow: 0 8px 26px rgba(15, 23, 42, 0.08);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+      background:
+        radial-gradient(circle at top left, #eef3ff 0%, transparent 28%),
+        radial-gradient(circle at top right, #fff3ea 0%, transparent 24%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);
+      border: 1px solid rgba(91, 108, 255, 0.12);
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .notice {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #fff8e6;
+      border: 1px solid #f4e1a8;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #7a5d00;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    select,
+    textarea,
+    button {
+      font: inherit;
+    }
+
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid #d7dce5;
+      border-radius: 14px;
+      background: #fff;
+      color: var(--text);
+      padding: 12px 14px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    select:focus,
+    textarea:focus {
+      border-color: rgba(91, 108, 255, 0.7);
+      box-shadow: 0 0 0 4px rgba(91, 108, 255, 0.12);
+    }
+
+    textarea {
+      min-height: 260px;
+      resize: vertical;
+      line-height: 1.65;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+      align-items: center;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 16px;
+      cursor: pointer;
+      transition: transform 0.05s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+    }
+
+    button:hover { opacity: 0.95; }
+    button:active { transform: translateY(1px); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #eef2f7;
+      color: #1f2430;
+    }
+
+    .btn-ghost {
+      background: #fff;
+      color: #1f2430;
+      border: 1px solid #d7dce5;
+      box-shadow: none;
+    }
+
+    .meta {
+      margin-left: auto;
+      font-size: 13px;
+      color: var(--muted);
+      background: #f5f7fb;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .list-wrap {
+      max-height: 720px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .clause-item {
+      border: 1px solid #e7ebf2;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      background: #fff;
+      transition: border-color 0.2s ease, transform 0.08s ease, box-shadow 0.2s ease;
+    }
+
+    .clause-item:hover {
+      border-color: rgba(91, 108, 255, 0.45);
+      box-shadow: 0 8px 18px rgba(91, 108, 255, 0.08);
+    }
+
+    .clause-item.active {
+      border-color: rgba(91, 108, 255, 0.9);
+      box-shadow: 0 10px 22px rgba(91, 108, 255, 0.12);
+      background: #fbfcff;
+    }
+
+    .clause-title {
+      font-weight: 700;
+      margin-bottom: 8px;
+      line-height: 1.45;
+    }
+
+    .clause-preview {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 10px;
+      word-break: break-word;
+    }
+
+    .badge-row,
+    .marker-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge,
+    .marker {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .high { background: var(--danger-soft); color: var(--danger); border-color: #f5c9c5; }
+    .medium { background: var(--warn-soft); color: var(--warn); border-color: #f3d0ae; }
+    .ok { background: var(--ok-soft); color: var(--ok); border-color: #bee7d0; }
+    .info { background: var(--info-soft); color: var(--info); border-color: #c8d9ff; }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+
+    .detail-title {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .detail-body {
+      white-space: pre-wrap;
+      line-height: 1.85;
+      font-size: 15px;
+      word-break: break-word;
+      background: #fbfcff;
+      border: 1px solid #edf1f7;
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    mark {
+      background: linear-gradient(transparent 15%, #fff0a8 15%, #fff0a8 88%, transparent 88%);
+      padding: 0 2px;
+      border-radius: 3px;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .result-box {
+      border: 1px solid #e7ebf2;
+      border-radius: 16px;
+      padding: 16px;
+      background: #fcfdff;
+    }
+
+    .result-box h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+
+    .result-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .result-item {
+      border: 1px solid #eceff5;
+      border-radius: 14px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .result-item strong {
+      display: block;
+      margin-bottom: 6px;
+      line-height: 1.5;
+    }
+
+    .result-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+      padding: 8px 2px;
+    }
+
+    .footer-note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 900px) {
+      .controls,
+      .workspace,
+      .results-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .meta {
+        margin-left: 0;
+      }
+
+      .detail-header {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="hero">
+      <h1>契約書レビュー支援アプリ 安定版 v1</h1>
+      <p>契約書本文を貼り付けると、条文単位に分割し、契約類型ごとのルールで不足条項候補や注意表現を可視化します。ローカル完結で動作し、初期スクリーニングを軽くするための補助ツールです。</p>
+      <div class="notice">このアプリは法務判断を自動化するものではありません。最終判断は必ず人が行ってください。</div>
+    </section>
+
+    <section class="card">
+      <h2>入力エリア</h2>
+      <div class="controls">
+        <div>
+          <label for="contractType">契約類型</label>
+          <select id="contractType">
+            <option value="service">業務委託契約</option>
+            <option value="nda">NDA</option>
+            <option value="sales">売買契約</option>
+            <option value="license">ライセンス契約</option>
+          </select>
+        </div>
+        <div>
+          <label for="contractText">契約書本文</label>
+          <textarea id="contractText" placeholder="ここに契約書本文を貼り付けてください。&#10;例:&#10;第1条（目的）&#10;甲は乙に対し...&#10;&#10;第2条（秘密保持）&#10;..."></textarea>
+          <div class="button-row">
+            <button id="splitBtn" class="btn-primary" type="button">条文分割を実行</button>
+            <button id="markBtn" class="btn-secondary" type="button">自動マーキングを実行</button>
+            <button id="sampleBtn" class="btn-secondary" type="button">サンプル本文を入れる</button>
+            <button id="clearBtn" class="btn-ghost" type="button">本文クリア</button>
+            <div id="clauseCount" class="meta">条文数: 0</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <section class="card">
+        <h2>条文一覧</h2>
+        <div id="clauseList" class="list-wrap">
+          <div class="empty">まだ条文がありません。本文を貼り付けて「条文分割を実行」を押してください。</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="detail-header">
+          <div>
+            <div id="detailTitle" class="detail-title">条文詳細</div>
+            <div id="detailMarkers" class="marker-row" style="margin-top:10px;"></div>
+          </div>
+        </div>
+        <div id="detailBody" class="detail-body">ここに選択した条文の全文が表示されます。</div>
+      </section>
+    </section>
+
+    <section class="card">
+      <h2>分析結果</h2>
+      <div class="results-grid">
+        <div class="result-box">
+          <h3>不足条項の推定</h3>
+          <div id="missingList" class="result-list">
+            <div class="empty">自動マーキングを実行すると、不足候補を表示します。</div>
+          </div>
+        </div>
+        <div class="result-box">
+          <h3>注意条項の検出</h3>
+          <div id="attentionList" class="result-list">
+            <div class="empty">自動マーキングを実行すると、注意事項を表示します。</div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-note">対応範囲: キーワードベースの簡易スクリーニング。意味理解、号・項・別紙対応、Wordコメント出力、差分比較などは未搭載です。</div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      const rules = {
+        service: {
+          label: '業務委託契約',
+          required: [
+            { label: '再委託管理', reason: '第三者への再委託をどう管理するかが見えません。', keywords: ['再委託', '再委任', '外部委託', '委託先'] },
+            { label: '秘密保持', reason: '秘密情報の扱いが見当たりません。', keywords: ['秘密', '秘密情報', '機密', '漏えい', '漏洩'] },
+            { label: '知的財産権', reason: '成果物や知財の帰属が見えません。', keywords: ['知的財産', '著作権', '成果物', '権利帰属', '知財'] },
+            { label: '損害賠償・責任制限', reason: '責任分担や賠償上限の整理が見えません。', keywords: ['損害賠償', '責任', '賠償', '上限', '逸失利益'] },
+            { label: '個人情報', reason: '個人情報の取扱いが見当たりません。', keywords: ['個人情報', '個人データ', 'プライバシー', '漏えい', '安全管理'] },
+            { label: '解除', reason: '契約終了や解除条件が見えません。', keywords: ['解除', '解約', '終了', '催告', '期限の利益'] }
+          ],
+          attention: [
+            { label: '協議で決める表現', memo: '運用に丸投げされやすく、紛争時に解釈が割れやすい表現です。', keywords: ['協議の上', '協議して', '別途協議', '誠意をもって協議'] },
+            { label: '包括的損害表現', memo: '賠償範囲が広すぎないか確認が必要です。', keywords: ['一切の損害', 'あらゆる損害', '全ての損害'] },
+            { label: '知財帰属の曖昧さ', memo: '知財が誰に帰属するか曖昧なまま残りやすい表現です。', keywords: ['帰属について協議', '別途定める', '成果物の取扱い'] },
+            { label: '個人情報不足の兆候', memo: '外部委託先へのデータ提供を含む場合、個人情報条項の精査が必要です。', keywords: ['外部委託先', '第三者提供', '委託先へ提供'] }
+          ]
+        },
+        nda: {
+          label: 'NDA',
+          required: [
+            { label: '秘密情報の定義', reason: '秘密情報の範囲が明確でない可能性があります。', keywords: ['秘密情報', '秘密である旨', '口頭開示', '開示資料'] },
+            { label: '目的外利用の禁止', reason: '利用目的の限定が見えません。', keywords: ['目的外利用', '本件目的', '本目的以外', '利用してはならない'] },
+            { label: '再開示制限', reason: '第三者への再開示ルールが見えません。', keywords: ['第三者', '再開示', '開示先', '必要最小限'] },
+            { label: '返還・廃棄', reason: '契約終了時の資料返還・廃棄が見えません。', keywords: ['返還', '廃棄', '削除', '消去'] },
+            { label: '存続期間', reason: '秘密保持義務の存続期間が見えません。', keywords: ['存続', '有効期間', '終了後', '満了後'] }
+          ],
+          attention: [
+            { label: '秘密情報定義の狭さ', memo: '書面指定や表示要件が厳しすぎると保護範囲が狭くなることがあります。', keywords: ['書面で秘密と明示', '秘密表示があるものに限る'] },
+            { label: '存続期間が短い可能性', memo: '秘密保持期間が短すぎないか確認が必要です。', keywords: ['1年間', '一年間', '2年間', '二年間'] },
+            { label: '再開示の広さ', memo: '関連会社や委託先への開示範囲が広すぎないか注意が必要です。', keywords: ['関連会社', '委託先', '再委託先', '顧問'] }
+          ]
+        },
+        sales: {
+          label: '売買契約',
+          required: [
+            { label: '検収', reason: '検収手続や合否判定が見えません。', keywords: ['検収', '受領検査', '合格', '不合格'] },
+            { label: '契約不適合', reason: '契約不適合責任や対応方法が見えません。', keywords: ['契約不適合', '瑕疵', '追完', '代替物', '修補'] },
+            { label: '危険負担・引渡し', reason: '引渡時点や危険移転の整理が見えません。', keywords: ['引渡し', '危険負担', '納入', '納品', '受領'] },
+            { label: '支払条件', reason: '代金支払の条件が見えません。', keywords: ['支払', '支払条件', '請求', '締日', '振込'] }
+          ],
+          attention: [
+            { label: '検収基準の不足', memo: '検収条件が曖昧だと紛争になりやすいです。', keywords: ['検収基準は別途', '合理的な基準', '通常の基準'] },
+            { label: '通知期間の欠如', memo: '不適合通知の期限が曖昧だと責任範囲がぶれます。', keywords: ['直ちに通知', '速やかに通知', '遅滞なく通知'] }
+          ]
+        },
+        license: {
+          label: 'ライセンス契約',
+          required: [
+            { label: '利用範囲', reason: '利用許諾の範囲が見えません。', keywords: ['利用範囲', '使用許諾', 'ライセンス', '利用目的', '使用地域'] },
+            { label: '再許諾制限', reason: '第三者への再許諾が整理されていません。', keywords: ['再許諾', 'サブライセンス', '第三者に許諾'] },
+            { label: '禁止事項', reason: '禁止行為が見当たりません。', keywords: ['禁止事項', '逆コンパイル', '改変', '複製', '解析'] },
+            { label: '終了時措置', reason: '契約終了後の利用停止や削除が見えません。', keywords: ['終了時', '利用停止', '削除', '返還', 'アンインストール'] }
+          ],
+          attention: [
+            { label: '利用範囲が粗い', memo: '地域、期間、利用主体などの範囲が粗いと解釈差が出ます。', keywords: ['必要な範囲で', '合理的な範囲で', '適切な範囲で'] },
+            { label: '委託先利用の整理不足', memo: '委託先や関連会社による利用可否を確認したい表現です。', keywords: ['委託先', '関連会社', '業務受託者'] }
+          ]
+        }
+      };
+
+      const sampleTexts = {
+        service: `第1条（目的）
+甲は乙に対し、Webサイト運用に関する業務を委託し、乙はこれを受託する。
+
+第2条（業務内容）
+乙は、甲の指定に従い、コンテンツ更新、レポート作成その他付随業務を行う。
+
+第3条（秘密保持）
+乙は、本契約に関連して知り得た甲の秘密情報を第三者に漏えいしてはならない。
+
+第4条（再委託）
+乙は、甲の事前承諾なく本業務を第三者に再委託してはならない。
+
+第5条（損害賠償）
+乙が本契約に違反し甲に損害を与えた場合、乙は甲に対し一切の損害を賠償する。
+
+第6条（協議事項）
+本契約に定めのない事項は、甲乙誠意をもって協議の上、定めるものとする。`,
+        nda: `第1条（秘密情報）
+本契約において秘密情報とは、相手方から開示された技術上、営業上その他一切の情報をいう。
+
+第2条（利用目的）
+受領当事者は、秘密情報を本件検討以外の目的に利用してはならない。
+
+第3条（第三者開示）
+受領当事者は、相手方の事前書面承諾なく秘密情報を第三者に開示してはならない。
+
+第4条（返還）
+本件検討が終了した場合、受領当事者は秘密情報を記載した資料を返還又は廃棄する。
+
+第5条（有効期間）
+本契約の有効期間は締結日から1年間とする。秘密保持義務は契約終了後2年間存続する。`,
+        sales: `第1条（売買）
+売主は買主に対し、本製品を売り渡し、買主はこれを買い受ける。
+
+第2条（納入）
+売主は、別紙記載の納期までに本製品を買主指定場所へ納入する。
+
+第3条（検収）
+買主は、納入後7営業日以内に検収を行い、合否を通知する。
+
+第4条（契約不適合）
+買主は契約不適合を発見した場合、売主に対し追完を請求することができる。
+
+第5条（代金支払）
+買主は、検収合格月の翌月末日までに代金を支払う。`,
+        license: `第1条（利用許諾）
+ライセンサーはライセンシーに対し、本ソフトウェアを社内業務のために利用する非独占的ライセンスを付与する。
+
+第2条（禁止事項）
+ライセンシーは、本ソフトウェアを改変、逆コンパイル又は第三者へ提供してはならない。
+
+第3条（再許諾）
+ライセンシーは、ライセンサーの事前承諾なく第三者に再許諾してはならない。
+
+第4条（終了時措置）
+契約終了時、ライセンシーは本ソフトウェアの利用を停止し、複製物を削除する。`
+      };
+
+      const state = {
+        clauses: [],
+        selectedIndex: -1,
+        analysis: { missing: [], attention: [] }
+      };
+
+      const el = {
+        contractType: document.getElementById('contractType'),
+        contractText: document.getElementById('contractText'),
+        splitBtn: document.getElementById('splitBtn'),
+        markBtn: document.getElementById('markBtn'),
+        sampleBtn: document.getElementById('sampleBtn'),
+        clearBtn: document.getElementById('clearBtn'),
+        clauseCount: document.getElementById('clauseCount'),
+        clauseList: document.getElementById('clauseList'),
+        detailTitle: document.getElementById('detailTitle'),
+        detailMarkers: document.getElementById('detailMarkers'),
+        detailBody: document.getElementById('detailBody'),
+        missingList: document.getElementById('missingList'),
+        attentionList: document.getElementById('attentionList')
+      };
+
+      function normalizeText(text) {
+        return String(text || '')
+          .replace(/\r\n/g, '\n')
+          .replace(/\r/g, '\n')
+          .replace(/\u00A0/g, ' ')
+          .trim();
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function escapeRegex(value) {
+        return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+
+      function splitIntoClauses(text) {
+        const normalized = normalizeText(text);
+        if (!normalized) return [];
+
+        const lines = normalized.split('\n');
+        const clauses = [];
+        let current = null;
+        const headingRegex = /^\s*第\s*[0-9０-９一二三四五六七八九十百千]+\s*条(?:\s*[（(].*[)）])?/;
+
+        for (const rawLine of lines) {
+          const line = rawLine.trimEnd();
+          if (headingRegex.test(line.trim())) {
+            if (current) clauses.push(finalizeClause(current));
+            current = { title: line.trim(), lines: [line] };
+          } else if (current) {
+            current.lines.push(line);
+          } else {
+            current = current || { title: '全文', lines: [] };
+            current.lines.push(line);
+          }
+        }
+
+        if (current) clauses.push(finalizeClause(current));
+        return clauses.length ? clauses : [createWholeClause(normalized)];
+      }
+
+      function finalizeClause(raw) {
+        const body = raw.lines.join('\n').trim();
+        const previewSource = body.replace(/\n+/g, ' ').replace(/^.+?\n/, '').trim() || body;
+        return {
+          title: raw.title || '全文',
+          body,
+          preview: previewSource.slice(0, 90) + (previewSource.length > 90 ? '…' : ''),
+          markers: []
+        };
+      }
+
+      function createWholeClause(text) {
+        const body = normalizeText(text);
+        return {
+          title: '全文',
+          body,
+          preview: body.replace(/\n+/g, ' ').slice(0, 90) + (body.length > 90 ? '…' : ''),
+          markers: []
+        };
+      }
+
+      function performSplit() {
+        const text = el.contractText.value;
+        const clauses = splitIntoClauses(text);
+        state.clauses = clauses;
+        state.selectedIndex = clauses.length ? 0 : -1;
+        state.analysis = { missing: [], attention: [] };
+        renderAll();
+      }
+
+      function detectMarkersForClause(clause, ruleSet) {
+        const body = clause.body;
+        const foundMarkers = [];
+
+        for (const item of ruleSet.required) {
+          const hits = item.keywords.filter(keyword => body.includes(keyword));
+          if (hits.length) {
+            foundMarkers.push({
+              kind: 'found',
+              label: item.label,
+              keywords: hits,
+              level: 'ok'
+            });
+          }
+        }
+
+        for (const item of ruleSet.attention) {
+          const hits = item.keywords.filter(keyword => body.includes(keyword));
+          if (hits.length) {
+            foundMarkers.push({
+              kind: 'attention',
+              label: item.label,
+              keywords: hits,
+              level: hits.length >= 2 ? 'high' : 'medium',
+              memo: item.memo
+            });
+          }
+        }
+
+        return foundMarkers;
+      }
+
+      function performMarking() {
+        if (!state.clauses.length) {
+          performSplit();
+        }
+
+        const type = el.contractType.value;
+        const ruleSet = rules[type];
+        const clauses = state.clauses.map(clause => ({ ...clause, markers: detectMarkersForClause(clause, ruleSet) }));
+        state.clauses = clauses;
+
+        const fullText = clauses.map(c => c.body).join('\n');
+        const missing = ruleSet.required
+          .map(item => {
+            const hits = item.keywords.filter(keyword => fullText.includes(keyword));
+            return hits.length ? null : {
+              label: item.label,
+              reason: item.reason,
+              keywords: item.keywords
+            };
+          })
+          .filter(Boolean);
+
+        const attention = [];
+        clauses.forEach(clause => {
+          clause.markers
+            .filter(marker => marker.kind === 'attention')
+            .forEach(marker => {
+              attention.push({
+                label: marker.label,
+                memo: marker.memo || '',
+                clauseTitle: clause.title,
+                keywords: marker.keywords
+              });
+            });
+        });
+
+        state.analysis = { missing, attention };
+        if (state.selectedIndex < 0 && clauses.length) state.selectedIndex = 0;
+        renderAll();
+      }
+
+      function renderAll() {
+        renderClauseCount();
+        renderClauseList();
+        renderDetail();
+        renderResults();
+      }
+
+      function renderClauseCount() {
+        el.clauseCount.textContent = `条文数: ${state.clauses.length}`;
+      }
+
+      function getClauseStatus(clause) {
+        const hasHigh = clause.markers.some(m => m.level === 'high');
+        const hasMedium = clause.markers.some(m => m.level === 'medium');
+        const hasOk = clause.markers.some(m => m.level === 'ok');
+        if (hasHigh) return { label: '高注意', className: 'high' };
+        if (hasMedium) return { label: '注意', className: 'medium' };
+        if (hasOk) return { label: '検出あり', className: 'ok' };
+        return null;
+      }
+
+      function renderClauseList() {
+        if (!state.clauses.length) {
+          el.clauseList.innerHTML = '<div class="empty">まだ条文がありません。本文を貼り付けて「条文分割を実行」を押してください。</div>';
+          return;
+        }
+
+        el.clauseList.innerHTML = state.clauses.map((clause, index) => {
+          const status = getClauseStatus(clause);
+          const markerBadges = clause.markers.slice(0, 4).map(marker => {
+            return `<span class="badge ${escapeHtml(marker.level)}">${escapeHtml(marker.label)}</span>`;
+          }).join('');
+          return `
+            <div class="clause-item ${index === state.selectedIndex ? 'active' : ''}" data-index="${index}">
+              <div class="clause-title">${escapeHtml(clause.title)}</div>
+              <div class="clause-preview">${escapeHtml(clause.preview)}</div>
+              <div class="badge-row">
+                ${status ? `<span class="badge ${status.className}">${status.label}</span>` : ''}
+                ${markerBadges}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        el.clauseList.querySelectorAll('.clause-item').forEach(item => {
+          item.addEventListener('click', () => {
+            state.selectedIndex = Number(item.dataset.index);
+            renderClauseList();
+            renderDetail();
+          });
+        });
+      }
+
+      function highlightedBody(clause) {
+        const keywords = [...new Set(clause.markers.flatMap(marker => marker.keywords || []))].filter(Boolean);
+        if (!keywords.length) return escapeHtml(clause.body);
+
+        const sorted = [...keywords].sort((a, b) => b.length - a.length);
+        let html = escapeHtml(clause.body);
+        sorted.forEach(keyword => {
+          const escapedKeyword = escapeHtml(keyword);
+          const regex = new RegExp(escapeRegex(escapedKeyword), 'g');
+          html = html.replace(regex, `<mark>${escapedKeyword}</mark>`);
+        });
+        return html;
+      }
+
+      function renderDetail() {
+        if (state.selectedIndex < 0 || !state.clauses[state.selectedIndex]) {
+          el.detailTitle.textContent = '条文詳細';
+          el.detailMarkers.innerHTML = '';
+          el.detailBody.textContent = 'ここに選択した条文の全文が表示されます。';
+          return;
+        }
+
+        const clause = state.clauses[state.selectedIndex];
+        el.detailTitle.textContent = clause.title;
+        el.detailMarkers.innerHTML = clause.markers.length
+          ? clause.markers.map(marker => `<span class="marker ${escapeHtml(marker.level)}">${escapeHtml(marker.kind === 'attention' ? '注意' : '検出')} · ${escapeHtml(marker.label)}</span>`).join('')
+          : '<span class="marker info">検出なし</span>';
+        el.detailBody.innerHTML = highlightedBody(clause);
+      }
+
+      function renderResults() {
+        const missing = state.analysis.missing || [];
+        const attention = state.analysis.attention || [];
+
+        if (!missing.length) {
+          el.missingList.innerHTML = '<div class="empty">不足候補はありません。必要観点のキーワードが本文内で検出されています。</div>';
+        } else {
+          el.missingList.innerHTML = missing.map(item => `
+            <div class="result-item">
+              <strong>${escapeHtml(item.label)}</strong>
+              <p>${escapeHtml(item.reason)}</p>
+              <p>関連キーワード: ${escapeHtml(item.keywords.join(' / '))}</p>
+            </div>
+          `).join('');
+        }
+
+        if (!attention.length) {
+          el.attentionList.innerHTML = '<div class="empty">注意表現は検出されませんでした。</div>';
+        } else {
+          el.attentionList.innerHTML = attention.map(item => `
+            <div class="result-item">
+              <strong>${escapeHtml(item.label)}</strong>
+              <p>${escapeHtml(item.memo)}</p>
+              <p>該当条文: ${escapeHtml(item.clauseTitle)}</p>
+              <p>ヒットキーワード: ${escapeHtml(item.keywords.join(' / '))}</p>
+            </div>
+          `).join('');
+        }
+      }
+
+      function loadSample() {
+        const type = el.contractType.value;
+        el.contractText.value = sampleTexts[type] || sampleTexts.service;
+        performSplit();
+        performMarking();
+      }
+
+      function clearAll() {
+        el.contractText.value = '';
+        state.clauses = [];
+        state.selectedIndex = -1;
+        state.analysis = { missing: [], attention: [] };
+        renderAll();
+      }
+
+      el.splitBtn.addEventListener('click', performSplit);
+      el.markBtn.addEventListener('click', performMarking);
+      el.sampleBtn.addEventListener('click', loadSample);
+      el.clearBtn.addEventListener('click', clearAll);
+      el.contractType.addEventListener('change', () => {
+        if (el.contractText.value.trim()) {
+          performSplit();
+        }
+      });
+
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
