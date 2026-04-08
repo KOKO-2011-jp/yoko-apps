@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>給与管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --accent: #f0c060;
+    --accent2: #6ee7b7;
+    --red: #f87171;
+    --text: #e8eaf6;
+    --muted: #6b7280;
+    --fixed-color: #818cf8;
+    --var-color: #f0c060;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a1d27 0%, #12152a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 16px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .month-nav button {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .backup-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .backup-btn {
+    flex: 1;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .backup-btn.export {
+    background: rgba(110,231,183,0.1);
+    color: var(--accent2);
+    border-color: rgba(110,231,183,0.2);
+  }
+
+  .backup-btn.import {
+    background: rgba(240,192,96,0.1);
+    color: var(--accent);
+    border-color: rgba(240,192,96,0.2);
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 99px;
+    font-size: 13px;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 999;
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .month-label {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  /* Salary input area */
+  .salary-area {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .salary-label {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .salary-date {
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(240,192,96,0.12);
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .salary-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    font-weight: 500;
+    text-align: right;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .salary-input::placeholder { color: rgba(240,192,96,0.3); }
+
+  .yen-sign {
+    color: var(--accent);
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  /* Balance cards */
+  .balance-section {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .balance-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  .balance-card.main {
+    grid-column: 1/-1;
+    background: linear-gradient(135deg, #1e2340 0%, #151929 100%);
+    border-color: rgba(110,231,183,0.2);
+  }
+
+  .balance-card-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .balance-card-amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--accent2);
+  }
+
+  .balance-card.main .balance-card-amount {
+    font-size: 32px;
+  }
+
+  .balance-card-amount.negative { color: var(--red); }
+  .balance-card-amount.warning { color: var(--accent); }
+
+  .balance-card-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    padding: 0 16px 4px;
+  }
+
+  .progress-bar {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transition: width 0.4s ease;
+  }
+
+  .progress-fill.warning { background: linear-gradient(90deg, var(--accent), #f97316); }
+  .progress-fill.danger { background: linear-gradient(90deg, #f97316, var(--red)); }
+
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+    padding: 0 2px;
+  }
+
+  /* Timeline */
+  .section-title {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 16px 16px 8px;
+  }
+
+  .timeline {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .month-divider {
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(240,192,96,0.08);
+    border: 1px solid rgba(240,192,96,0.15);
+    border-radius: 6px;
+    padding: 4px 10px;
+    margin: 10px 0 4px;
+    letter-spacing: 0.08em;
+  }
+
+  .timeline-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: border-color 0.2s;
+  }
+
+  .timeline-item.fixed { border-left: 3px solid var(--fixed-color); }
+  .timeline-item.variable { border-left: 3px solid var(--var-color); }
+  .timeline-item.unpaid { opacity: 0.7; }
+
+  .day-badge {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 4px 6px;
+    text-align: center;
+    min-width: 36px;
+    flex-shrink: 0;
+  }
+
+  .day-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .day-label {
+    font-size: 9px;
+    color: var(--muted);
+    line-height: 1.2;
+  }
+
+  .item-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .item-name {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .item-meta {
+    display: flex;
+    gap: 6px;
+    margin-top: 3px;
+    align-items: center;
+  }
+
+  .bank-tag {
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .type-tag {
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .type-tag.fixed { color: var(--fixed-color); background: rgba(129,140,248,0.1); }
+  .type-tag.variable { color: var(--var-color); background: rgba(240,192,96,0.1); }
+
+  .item-right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .item-amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--red);
+  }
+
+  .item-amount.pending {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .item-balance {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Input for variable */
+  .var-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .var-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    text-align: right;
+    padding: 4px 6px;
+    width: 110px;
+    outline: none;
+  }
+
+  .var-input:focus { border-color: var(--accent); }
+  .var-input::placeholder { color: var(--muted); font-size: 12px; }
+
+  .clear-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px 4px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 14px;
+    padding: 8px 16px 0;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+    margin-right: 4px;
+  }
+
+  .total-row {
+    margin: 12px 16px 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .total-row-label { font-size: 13px; color: var(--muted); }
+  .total-row-amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--red);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <span class="month-label" id="monthLabel"></span>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+  <div class="backup-bar">
+    <button class="backup-btn export" onclick="exportJSON()">📤 バックアップ書き出し</button>
+    <button class="backup-btn import" onclick="document.getElementById('importFile').click()">📥 読み込み</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+  </div>
+  <div class="salary-area">
+    <span class="salary-label">💴 給与</span>
+    <span class="salary-date">20日入金</span>
+    <span class="yen-sign">¥</span>
+    <input class="salary-input" type="number" id="salaryInput" placeholder="0" oninput="onSalaryChange()">
+  </div>
+</div>
+
+<div class="balance-section">
+  <div class="balance-card main">
+    <div class="balance-card-label">残金（支払い後）</div>
+    <div class="balance-card-amount" id="finalBalance">¥0</div>
+    <div class="balance-card-sub" id="balanceSub">給与を入力してください</div>
+  </div>
+  <div class="balance-card">
+    <div class="balance-card-label">固定費合計</div>
+    <div class="balance-card-amount" id="fixedTotal">¥0</div>
+    <div class="balance-card-sub">自動確定</div>
+  </div>
+  <div class="balance-card">
+    <div class="balance-card-label">変動費合計</div>
+    <div class="balance-card-amount" id="varTotal">¥0</div>
+    <div class="balance-card-sub">手入力分</div>
+  </div>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+  <div class="progress-labels">
+    <span>支出0%</span>
+    <span id="progressPct">0%</span>
+    <span>100%</span>
+  </div>
+</div>
+
+<div class="legend">
+  <span><span class="legend-dot" style="background:var(--fixed-color)"></span>固定費</span>
+  <span><span class="legend-dot" style="background:var(--var-color)"></span>変動費（手入力）</span>
+</div>
+
+<div class="section-title">支払いスケジュール</div>
+<div class="timeline" id="timeline"></div>
+
+<div class="total-row">
+  <span class="total-row-label">支払い総額</span>
+  <span class="total-row-amount" id="grandTotal">¥0</span>
+</div>
+
+<script>
+// ----- Data Definition -----
+// day: 正の数=当月, 負の数=翌月(day+100で翌月の日付)
+const EXPENSES_TEMPLATE = [
+  { id: 'kanrihi',  day: 23, name: '管理費',        bank: 'SBI',  fixed: true,  amount: 30000  },
+  { id: 'jikka',   day: 25, name: '実家',           bank: 'SBI',  fixed: true,  amount: 10000  },
+  { id: 'gym',     day: 26, name: 'ジム代',         bank: 'SMBC', fixed: true,  amount: 16470  },
+  { id: 'loan',    day: 27, name: 'ローン',         bank: 'SMBC', fixed: true,  amount: 87130  },
+  { id: 'rakuten', day: 27, name: '楽天カード',     bank: 'SMBC', fixed: false, amount: null   },
+  { id: 'view',    day: 104, name: 'VIEW CARD',     bank: 'SMBC', fixed: false, amount: null   },
+  { id: 'shop',    day: 104, name: 'ショップチャンネル', bank: 'SMBC', fixed: false, amount: null },
+  { id: 'piano',   day: 109, name: 'ピアノレッスン', bank: 'SMBC', fixed: true,  amount: 15950  },
+  { id: 'dcard',   day: 110, name: 'dカード',       bank: 'SMBC', fixed: false, amount: null   },
+  { id: 'jal',     day: 110, name: 'JALカード',     bank: 'SMBC', fixed: false, amount: null   },
+  { id: 'smbc',    day: 110, name: '三井住友カード', bank: 'SMBC', fixed: false, amount: null   },
+  { id: 'hensai',  day: 110, name: '返済',          bank: 'SMBC', fixed: true,  amount: 30000  },
+  { id: 'ribon',   day: 110, name: 'りぼん',        bank: 'SMBC', fixed: true,  amount: 10000  },
+];
+
+// ----- State -----
+let currentYear, currentMonth;
+let state = {}; // { [monthKey]: { salary, vars: {id: amount} } }
+
+const STORAGE_KEY = 'salary_mgr_v1';
+
+function monthKey(y, m) { return `${y}-${String(m).padStart(2,'0')}`; }
+
+function loadState() {
+  try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { state = {}; }
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+function getMonthData() {
+  const k = monthKey(currentYear, currentMonth);
+  if (!state[k]) state[k] = { salary: null, vars: {} };
+  return state[k];
+}
+
+// ----- Init -----
+function init() {
+  loadState();
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth() + 1;
+  render();
+}
+
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+  if (currentMonth < 1)  { currentMonth = 12; currentYear--; }
+  render();
+}
+
+function onSalaryChange() {
+  const val = document.getElementById('salaryInput').value;
+  const md = getMonthData();
+  md.salary = val === '' ? null : parseInt(val);
+  saveState();
+  updateCalc();
+}
+
+function onVarChange(id, val) {
+  const md = getMonthData();
+  md.vars[id] = val === '' ? null : parseInt(val.replace(/,/g,''));
+  saveState();
+  updateCalc();
+}
+
+function fmt(n) {
+  if (n == null) return null;
+  return '¥' + n.toLocaleString('ja-JP');
+}
+
+// ----- Render -----
+function render() {
+  const md = getMonthData();
+  const y = currentYear, m = currentMonth;
+  document.getElementById('monthLabel').textContent = `${y}年 ${m}月`;
+
+  const si = document.getElementById('salaryInput');
+  si.value = md.salary != null ? md.salary : '';
+
+  renderTimeline(md, y, m);
+  updateCalc();
+}
+
+function renderTimeline(md, y, m) {
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = '';
+
+  // Group by month section
+  let lastSection = 'current';
+
+  EXPENSES_TEMPLATE.forEach(exp => {
+    const isNext = exp.day > 100;
+    const section = isNext ? 'next' : 'current';
+    const actualDay = isNext ? exp.day - 100 : exp.day;
+
+    if (section !== lastSection) {
+      const div = document.createElement('div');
+      div.className = 'month-divider';
+      const nm = m === 12 ? 1 : m+1;
+      const ny = m === 12 ? y+1 : y;
+      div.textContent = `▸ 翌月（${ny}年${nm}月）`;
+      tl.appendChild(div);
+      lastSection = section;
+    }
+
+    const amount = exp.fixed ? exp.amount : (md.vars[exp.id] ?? null);
+    const item = document.createElement('div');
+    item.className = `timeline-item ${exp.fixed ? 'fixed' : 'variable'}`;
+    item.dataset.id = exp.id;
+
+    const amountStr = exp.fixed
+      ? `<div class="item-amount">${fmt(amount)}</div>`
+      : `<div class="var-input-wrap">
+           <input class="var-input" type="number" placeholder="金額入力"
+             value="${amount != null ? amount : ''}"
+             oninput="onVarChange('${exp.id}', this.value)">
+         </div>`;
+
+    item.innerHTML = `
+      <div class="day-badge">
+        <div class="day-num">${actualDay}</div>
+        <div class="day-label">日</div>
+      </div>
+      <div class="item-info">
+        <div class="item-name">${exp.name}</div>
+        <div class="item-meta">
+          <span class="bank-tag">${exp.bank}</span>
+          <span class="type-tag ${exp.fixed ? 'fixed' : 'variable'}">${exp.fixed ? '固定' : '手入力'}</span>
+        </div>
+      </div>
+      <div class="item-right">
+        ${amountStr}
+        <div class="item-balance" id="bal_${exp.id}"></div>
+      </div>
+    `;
+    tl.appendChild(item);
+  });
+}
+
+function updateCalc() {
+  const md = getMonthData();
+  const salary = md.salary ?? 0;
+
+  let fixedSum = 0, varSum = 0;
+  let running = salary;
+
+  EXPENSES_TEMPLATE.forEach(exp => {
+    const amount = exp.fixed ? exp.amount : (md.vars[exp.id] ?? 0);
+    if (exp.fixed) fixedSum += amount;
+    else varSum += (md.vars[exp.id] ?? 0);
+
+    running -= amount;
+
+    const balEl = document.getElementById(`bal_${exp.id}`);
+    if (balEl) {
+      if (salary > 0) {
+        balEl.textContent = fmt(running);
+        balEl.style.color = running < 0 ? 'var(--red)' : running < salary*0.2 ? 'var(--accent)' : 'var(--muted)';
+      } else {
+        balEl.textContent = '';
+      }
+    }
+  });
+
+  const grandTotal = fixedSum + varSum;
+  const finalBalance = salary - grandTotal;
+  const pct = salary > 0 ? Math.min(100, Math.round(grandTotal / salary * 100)) : 0;
+
+  // Update cards
+  document.getElementById('fixedTotal').textContent = fmt(fixedSum);
+  document.getElementById('varTotal').textContent = fmt(varSum);
+  document.getElementById('grandTotal').textContent = fmt(grandTotal);
+
+  const fb = document.getElementById('finalBalance');
+  const fbs = document.getElementById('balanceSub');
+  if (salary > 0) {
+    fb.textContent = fmt(finalBalance);
+    fb.className = 'balance-card-amount' + (finalBalance < 0 ? ' negative' : finalBalance < salary*0.1 ? ' warning' : '');
+    fbs.textContent = `支出率 ${pct}%　給与 ${fmt(salary)}`;
+  } else {
+    fb.textContent = '¥—';
+    fb.className = 'balance-card-amount';
+    fbs.textContent = '給与を入力してください';
+  }
+
+  // Progress
+  const pf = document.getElementById('progressFill');
+  pf.style.width = pct + '%';
+  pf.className = 'progress-fill' + (pct >= 90 ? ' danger' : pct >= 70 ? ' warning' : '');
+  document.getElementById('progressPct').textContent = pct + '%';
+}
+
+init();
+
+function exportJSON() {
+  const data = JSON.stringify(state, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `salary-manager-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📤 バックアップを書き出しました');
+}
+
+function importJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      state = imported;
+      saveState();
+      render();
+      showToast('📥 データを読み込みました');
+    } catch {
+      showToast('⚠️ ファイルが正しくありません');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+</script>
+<div id="toast" class="toast"></div>
+
+</body>
+</html>
